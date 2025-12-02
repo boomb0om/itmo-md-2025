@@ -1,14 +1,21 @@
 FROM python:3.11-slim
 
+# Install uv
+COPY --from=ghcr.io/astral-sh/uv:latest /uv /usr/local/bin/uv
+
 WORKDIR /app
 
-# Установка зависимостей
-COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
+# Copy dependency files
+COPY pyproject.toml ./
 
-# Копирование кода приложения
-COPY main.py .
+# Install dependencies
+RUN uv pip install --system -e .
 
-# Запуск приложения
+# Copy application code
+COPY . .
+
+# Expose port
+EXPOSE 8000
+
+# Run application
 CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
-
