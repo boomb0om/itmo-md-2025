@@ -1,17 +1,17 @@
 from contextlib import asynccontextmanager
 from typing import Any
 
-from core.logging import get_logger
-from database import connect_mongo, disconnect_mongo
+from app.core.logging import get_logger
+from app.database import connect_mongo, disconnect_mongo
 from fastapi import FastAPI, HTTPException
-from services.binance_service import fetch_klines
-from services.news_service import fetch_news
+from app.services.binance_service import fetch_klines
+from app.services.news_service import fetch_news
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Application lifespan manager"""
-    logger = get_logger()
+    logger = get_logger(__name__)
     # Startup
     await connect_mongo()
     await logger.info("Application started")
@@ -38,7 +38,7 @@ async def root() -> dict[str, str]:
 async def health() -> dict[str, str]:
     """Health check endpoint"""
     try:
-        from database import get_db
+        from app.database import get_db
 
         db = get_db()
         db.command("ping")
@@ -62,7 +62,7 @@ async def api_fetch_klines(
     Returns:
         Status and count of fetched klines
     """
-    logger = get_logger()
+    logger = get_logger(__name__)
     try:
         result = await fetch_klines(symbol=symbol, interval=interval, limit=limit)
         return result
@@ -83,7 +83,7 @@ async def api_fetch_news(source: str = "cryptopanic", limit: int = 50) -> dict[s
     Returns:
         Status, count, and list of fetched news articles
     """
-    logger = get_logger()
+    logger = get_logger(__name__)
     try:
         result = await fetch_news(source=source, limit=limit)
         return result

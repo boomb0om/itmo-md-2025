@@ -1,8 +1,8 @@
 from datetime import datetime, timedelta
 from typing import Any
 
-from core.logging import get_logger
-from database import get_db
+from app.core.logging import get_logger
+from app.database import get_db
 from fastapi import HTTPException
 
 
@@ -151,7 +151,7 @@ async def fetch_news(source: str = "cryptopanic", limit: int = 50) -> dict[str, 
     Returns:
         RSS-like response in JSON format
     """
-    logger = get_logger()
+    logger = get_logger(__name__)
     rss_url = "mock://news-api"
     request = {"source": source, "limit": limit}
     created_at = datetime.now()

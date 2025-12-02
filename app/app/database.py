@@ -1,5 +1,5 @@
-from core.logging import get_logger
-from core.settings import get_settings
+from app.core.logging import get_logger
+from app.core.settings import get_settings
 from pymongo import MongoClient
 from pymongo.database import Database
 from pymongo.errors import ConnectionFailure
@@ -11,7 +11,7 @@ db: Database | None = None
 async def connect_mongo():
     """Connect to MongoDB"""
     global client, db
-    logger = get_logger()
+    logger = get_logger(__name__)
     settings = get_settings()
     try:
         client = MongoClient(settings.mongo.url, serverSelectionTimeoutMS=5000)
@@ -26,7 +26,7 @@ async def connect_mongo():
 async def disconnect_mongo():
     """Disconnect from MongoDB"""
     global client
-    logger = get_logger()
+    logger = get_logger(__name__)
     if client:
         client.close()
         await logger.info("MongoDB connection closed")

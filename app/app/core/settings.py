@@ -49,4 +49,4 @@ class Settings(BaseSettings):
 @lru_cache
 def get_settings() -> Settings:
     """Return cached settings instance so we do not re-parse .env repeatedly."""
-    return Settings.create()
+    return Settings()

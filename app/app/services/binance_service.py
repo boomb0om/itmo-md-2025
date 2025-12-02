@@ -2,9 +2,9 @@ from datetime import datetime
 from typing import Any
 
 import httpx
-from core.logging import get_logger
-from core.settings import get_settings
-from database import get_db
+from app.core.logging import get_logger
+from app.core.settings import get_settings
+from app.database import get_db
 from fastapi import HTTPException
 
 
@@ -55,7 +55,7 @@ async def fetch_klines(symbol: str, interval: str, limit: int = 100) -> dict[str
     Returns:
         Dictionary with klines data
     """
-    logger = get_logger()
+    logger = get_logger(__name__)
     settings = get_settings()
     url = f"{settings.binance.base_url}/klines"
     params = {"symbol": symbol.upper(), "interval": interval.upper(), "limit": min(limit, 1000)}
