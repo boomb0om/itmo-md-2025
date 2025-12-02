@@ -1,5 +1,3 @@
-version: '3.8'
-
 x-airflow-common: &airflow-common
   build: .
   environment:
@@ -34,8 +32,6 @@ x-airflow-common: &airflow-common
     - ./logs:/opt/airflow/logs
     - ./plugins:/opt/airflow/plugins
   user: "${AIRFLOW_UID:-50000}:0"
-  networks:
-    - md-course-network
   depends_on:
     &airflow-common-depends-on
     postgres:
@@ -56,8 +52,6 @@ services:
       retries: 5
       start_period: 5s
     restart: always
-    networks:
-      - md-course-network
 
   redis:
     image: redis:latest
@@ -67,8 +61,6 @@ services:
       timeout: 30s
       retries: 50
     restart: always
-    networks:
-      - md-course-network
 
   airflow-webserver:
     <<: *airflow-common
@@ -120,11 +112,3 @@ services:
     user: "0:0"
     volumes:
       - ${AIRFLOW_PROJ_DIR:-.}:/sources
-
-volumes:
-  postgres-db-volume:
-
-networks:
-  md-course-network:
-    driver: bridge
-

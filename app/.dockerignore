@@ -1,12 +1,5 @@
 __pycache__
-*.pyc
-*.pyo
-*.pyd
-.Python
-env/
-venv/
 .venv
-*.egg-info
-dist/
-build/
-
+.ruff_cache
+.env
+.env.example

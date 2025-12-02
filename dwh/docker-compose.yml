@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   postgres-analytics:
     image: postgres:13
@@ -18,13 +16,3 @@ services:
       timeout: 5s
       retries: 5
     restart: always
-    networks:
-      - md-course-network
-
-volumes:
-  postgres-analytics-data:
-
-networks:
-  md-course-network:
-    driver: bridge
-

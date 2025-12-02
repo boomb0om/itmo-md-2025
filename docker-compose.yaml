@@ -1,5 +1,3 @@
-version: '3.8'
-
 include:
   - path: "app/docker-compose.yml"
     env_file: "app/.env"
@@ -7,7 +5,3 @@ include:
     env_file: "dwh/.env"
   - path: "airflow/docker-compose.yml"
     env_file: "airflow/.env"
-
-networks:
-  md-course-network:
-    driver: bridge

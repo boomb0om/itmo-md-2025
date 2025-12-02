@@ -1,56 +1,29 @@
-version: '3.8'
-
 services:
   crypto-app:
     build:
       context: .
       dockerfile: Dockerfile
-    container_name: crypto-app
+      target: runtime
+    env_file:
+      - .env
     ports:
-      - "8000:8000"
-    environment:
-      APP_HOST: "0.0.0.0"
-      APP_PORT: "8000"
-      APP_LOG_LEVEL: "INFO"
-      MONGO_HOST: "mongodb"
-      MONGO_PORT: "27017"
-      MONGO_USERNAME: "${MONGO_USERNAME:-admin}"
-      MONGO_PASSWORD: "${MONGO_PASSWORD:-admin}"
-      MONGO_DATABASE: "${MONGO_DATABASE:-crypto_data}"
-      MONGO_AUTH_SOURCE: "admin"
-      BINANCE_BASE_URL: "https://api.binance.com/api/v3"
-      BINANCE_TIMEOUT: "30.0"
+      - "${APP_PORT:-8000}:8000"
     depends_on:
-      mongodb:
-        condition: service_healthy
-    restart: always
-    networks:
-      - md-course-network
+      - mongodb
 
-  mongodb:
+  crypto-app-mongodb:
     image: mongo:7
-    container_name: mongodb
     environment:
       MONGO_INITDB_ROOT_USERNAME: "${MONGO_USERNAME:-admin}"
       MONGO_INITDB_ROOT_PASSWORD: "${MONGO_PASSWORD:-admin}"
       MONGO_INITDB_DATABASE: "${MONGO_DATABASE:-crypto_data}"
     ports:
-      - "27017:27017"
+      - "${MONGO_PORT:-27017}:27017"
     volumes:
-      - mongodb-data:/data/db
+      - volumes/mongodb/data:/data/db
     healthcheck:
       test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
       interval: 10s
       timeout: 5s
       retries: 5
     restart: always
-    networks:
-      - md-course-network
-
-volumes:
-  mongodb-data:
-
-networks:
-  md-course-network:
-    driver: bridge
-

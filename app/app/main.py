@@ -1,16 +1,17 @@
-from fastapi import FastAPI, HTTPException
 from contextlib import asynccontextmanager
+from typing import Any
 
-from src.core.settings import app_settings
-from src.core.logging import logger
-from src.database import connect_mongo, disconnect_mongo
-from src.services.binance_service import fetch_klines
-from src.services.news_service import fetch_news
+from core.logging import get_logger
+from database import connect_mongo, disconnect_mongo
+from fastapi import FastAPI, HTTPException
+from services.binance_service import fetch_klines
+from services.news_service import fetch_news
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Application lifespan manager"""
+    logger = get_logger()
     # Startup
     await connect_mongo()
     await logger.info("Application started")
@@ -23,23 +24,24 @@ async def lifespan(app: FastAPI):
 app = FastAPI(
     title="Crypto Data Collector",
     description="FastAPI application for collecting cryptocurrency price and news data",
-    lifespan=lifespan
+    lifespan=lifespan,
 )
 
 
 @app.get("/")
-async def root():
+async def root() -> dict[str, str]:
     """Root endpoint"""
     return {"message": "Crypto Data Collector API"}
 
 
 @app.get("/health")
-async def health():
+async def health() -> dict[str, str]:
     """Health check endpoint"""
     try:
-        from src.database import get_db
+        from database import get_db
+
         db = get_db()
-        db.command('ping')
+        db.command("ping")
         return {"status": "healthy", "mongodb": "connected"}
     except Exception as e:
         return {"status": "unhealthy", "error": str(e)}
@@ -47,57 +49,44 @@ async def health():
 
 @app.get("/api/fetch-klines")
 async def api_fetch_klines(
-    symbol: str = "BTCUSDT",
-    interval: str = "1h",
-    limit: int = 100
-):
+    symbol: str = "BTCUSDT", interval: str = "1h", limit: int = 100
+) -> dict[str, Any]:
     """
     Fetch cryptocurrency candlestick data from Binance
-    
+
     Args:
         symbol: Trading pair (e.g., BTCUSDT, ETHUSDT)
         interval: Time interval (1m, 5m, 15m, 1h, 4h, 1d, etc.)
         limit: Number of candles to fetch (max 1000)
-    
+
     Returns:
         Status and count of fetched klines
     """
+    logger = get_logger()
     try:
         result = await fetch_klines(symbol=symbol, interval=interval, limit=limit)
         return result
     except Exception as e:
         await logger.error(f"Error in fetch_klines endpoint: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=str(e)) from e
 
 
 @app.get("/api/fetch-news")
-async def api_fetch_news(
-    source: str = "cryptopanic",
-    limit: int = 50
-):
+async def api_fetch_news(source: str = "cryptopanic", limit: int = 50) -> dict[str, Any]:
     """
-    Fetch cryptocurrency news from RSS feeds
-    
+    Fetch cryptocurrency news from RSS feeds (mock implementation)
+
     Args:
-        source: News source (currently only 'cryptopanic' supported)
+        source: News source
         limit: Number of articles to fetch
-    
+
     Returns:
-        Status and count of fetched news articles
+        Status, count, and list of fetched news articles
     """
+    logger = get_logger()
     try:
         result = await fetch_news(source=source, limit=limit)
         return result
     except Exception as e:
         await logger.error(f"Error in fetch_news endpoint: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
-
-
-if __name__ == "__main__":
-    import uvicorn
-    uvicorn.run(
-        "main:app",
-        host=app_settings.host,
-        port=app_settings.port,
-        reload=True
-    )
+        raise HTTPException(status_code=500, detail=str(e)) from e
