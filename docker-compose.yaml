@@ -1,68 +1,7 @@
-version: '3.8'
-
-services:
-  postgres-analytics:
-    image: postgres:13
-    container_name: postgres-analytics
-    environment:
-      POSTGRES_USER: analytics
-      POSTGRES_PASSWORD: analytics
-      POSTGRES_DB: analytics
-    ports:
-      - "5433:5432"
-    volumes:
-      - postgres-analytics-data:/var/lib/postgresql/data
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U analytics"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-    restart: always
-    networks:
-      - md-course-network
-
-  mongodb:
-    image: mongo:7
-    container_name: mongodb
-    environment:
-      MONGO_INITDB_ROOT_USERNAME: admin
-      MONGO_INITDB_ROOT_PASSWORD: admin
-      MONGO_INITDB_DATABASE: crypto_data
-    ports:
-      - "27017:27017"
-    volumes:
-      - mongodb-data:/data/db
-    healthcheck:
-      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-    restart: always
-    networks:
-      - md-course-network
-
-  crypto-app:
-    build:
-      context: ./app
-      dockerfile: Dockerfile
-    container_name: crypto-app
-    ports:
-      - "8000:8000"
-    environment:
-      MONGODB_URL: mongodb://admin:admin@mongodb:27017/crypto_data?authSource=admin
-      MONGODB_DB: crypto_data
-    depends_on:
-      mongodb:
-        condition: service_healthy
-    restart: always
-    networks:
-      - md-course-network
-
-volumes:
-  postgres-analytics-data:
-  mongodb-data:
-
-networks:
-  md-course-network:
-    driver: bridge
-
+include:
+  - path: "app/docker-compose.yml"
+    env_file: "app/.env"
+  - path: "dwh/docker-compose.yml"
+    env_file: "dwh/.env"
+  - path: "airflow/docker-compose.yml"
+    env_file: "airflow/.env"
