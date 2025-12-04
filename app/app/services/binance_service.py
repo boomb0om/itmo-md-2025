@@ -2,10 +2,11 @@ from datetime import datetime
 from typing import Any
 
 import httpx
+from fastapi import HTTPException
+
 from app.core.logging import get_logger
 from app.core.settings import get_settings
 from app.database import get_db
-from fastapi import HTTPException
 
 
 def save_request_to_mongo(
@@ -83,7 +84,10 @@ async def fetch_klines(symbol: str, interval: str, limit: int = 100) -> dict[str
 
         await logger.info(f"Successfully fetched {len(data)} klines for {symbol}")
 
-        return {"binance_response_status": response.status_code, "binance_response_data_size": len(data)}
+        return {
+            "binance_response_status": response.status_code,
+            "binance_response_data_size": len(data),
+        }
 
     except httpx.HTTPStatusError as e:
         updated_at = datetime.now()
