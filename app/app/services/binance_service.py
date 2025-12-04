@@ -58,7 +58,7 @@ async def fetch_klines(symbol: str, interval: str, limit: int = 100) -> dict[str
     logger = get_logger(__name__)
     settings = get_settings()
     url = f"{settings.binance.base_url}/klines"
-    params = {"symbol": symbol.upper(), "interval": interval.upper(), "limit": min(limit, 1000)}
+    params = {"symbol": symbol.upper(), "interval": interval, "limit": min(limit, 1000)}
 
     await logger.info(f"Sending request to Binance API for {symbol}")
     created_at = datetime.now()
@@ -83,7 +83,7 @@ async def fetch_klines(symbol: str, interval: str, limit: int = 100) -> dict[str
 
         await logger.info(f"Successfully fetched {len(data)} klines for {symbol}")
 
-        return data
+        return {"binance_response_status": response.status_code, "binance_response_data_size": len(data)}
 
     except httpx.HTTPStatusError as e:
         updated_at = datetime.now()

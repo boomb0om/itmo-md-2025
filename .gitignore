@@ -1,3 +1,7 @@
+# docker
+airflow/volumes/
+dwh/volumes/
+
 # Airflow
 airflow/logs/
 
