@@ -28,6 +28,5 @@ jobs:
             cd ~/itmo-md-2025
             git fetch origin main
             git reset --hard origin/main
-            sudo make stop
-            sudo make build
-            sudo make serve
+            docker compose down
+            docker compose up -d --build
