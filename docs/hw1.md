@@ -140,7 +140,7 @@ EL-процесс реализован в Airflow DAG el_process и выполн
 - **Airflow WebUI:** [http://213.171.30.141:8080](http://213.171.30.141:8080) (credentials: airflow/airflow)
 - **FastAPI Documentation:** [http://213.171.30.141:8000/docs](http://213.171.30.141:8000/docs)
 
-### 9.2. Артефакты
+### 6.2. Артефакты
 
 Основные директории:
 
