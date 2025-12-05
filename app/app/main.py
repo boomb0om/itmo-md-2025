@@ -1,9 +1,10 @@
 from contextlib import asynccontextmanager
 from typing import Any
 
+from fastapi import FastAPI, HTTPException
+
 from app.core.logging import get_logger
 from app.database import connect_mongo, disconnect_mongo
-from fastapi import FastAPI, HTTPException
 from app.services.binance_service import fetch_klines
 from app.services.news_service import fetch_news
 

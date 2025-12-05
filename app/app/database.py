@@ -1,8 +1,9 @@
-from app.core.logging import get_logger
-from app.core.settings import get_settings
 from pymongo import MongoClient
 from pymongo.database import Database
 from pymongo.errors import ConnectionFailure
+
+from app.core.logging import get_logger
+from app.core.settings import get_settings
 
 client: MongoClient | None = None
 db: Database | None = None

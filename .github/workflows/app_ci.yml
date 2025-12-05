@@ -1,0 +1,22 @@
+name: App CI
+
+on:
+  push:
+    paths:
+      - "app/**"
+      - ".github/workflows/app_ci.yml"
+  pull_request:
+    paths:
+      - "app/**"
+      - ".github/workflows/app_ci.yml"
+
+jobs:
+  lint:
+    name: Lint app python code using Ruff
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/ruff-action@v3
+        with:
+            args: check
+            src: "./app"

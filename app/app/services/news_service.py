@@ -1,9 +1,10 @@
 from datetime import datetime, timedelta
 from typing import Any
 
+from fastapi import HTTPException
+
 from app.core.logging import get_logger
 from app.database import get_db
-from fastapi import HTTPException
 
 
 def save_request_to_mongo(
