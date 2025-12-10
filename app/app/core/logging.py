@@ -12,7 +12,6 @@ LOG_FORMAT = "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
 
 @lru_cache
 def get_logger(name: str) -> Logger:
-    """Return a configured module-level logger with consistent formatting."""
     settings = get_settings()
     level = logging.getLevelName(settings.app.log_level.upper())
     logger = Logger(name=name, level=level)
