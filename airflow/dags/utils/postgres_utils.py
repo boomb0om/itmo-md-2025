@@ -16,8 +16,17 @@ def create_raw_schema_if_not_exists(conn=None):
     
     try:
         with conn.cursor() as cursor:
-            cursor.execute("CREATE SCHEMA IF NOT EXISTS raw;")
-            conn.commit()
+            cursor.execute("""
+                SELECT EXISTS(
+                    SELECT 1 FROM information_schema.schemata 
+                    WHERE schema_name = 'raw'
+                )
+            """)
+            exists = cursor.fetchone()[0]
+            
+            if not exists:
+                cursor.execute("CREATE SCHEMA raw;")
+                conn.commit()
     finally:
         if should_close:
             conn.close()

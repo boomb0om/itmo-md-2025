@@ -1,11 +1,10 @@
 from datetime import datetime, timezone
-from typing import Any, Dict, List
-from uuid import uuid4
+from typing import Any, Dict, List, Set
 
+from bson import ObjectId
 from psycopg2.extras import Json
 
-from utils.db_connections import get_postgres_connection
-from utils.mongo_utils import get_all_data_from_mongo
+from utils.db_connections import get_postgres_connection, get_mongo_database
 from utils.postgres_utils import create_raw_table_if_not_exists
 
 
@@ -22,6 +21,12 @@ def convert_mongo_doc_to_dict(doc: Dict[str, Any]) -> Dict[str, Any]:
     return result
 
 
+def get_processed_ids(conn, table_name: str) -> Set[str]:
+    with conn.cursor() as cursor:
+        cursor.execute(f"SELECT id FROM raw.{table_name}")
+        return {row[0] for row in cursor.fetchall()}
+
+
 def save_batch_to_raw_layer(
     data_list: List[Dict[str, Any]],
     table_name: str = "raw_data",
@@ -34,14 +39,15 @@ def save_batch_to_raw_layer(
         should_close = False
     
     try:
-        create_raw_table_if_not_exists(conn, table_name)
-
         process_at = datetime.now(timezone.utc)
         doc_ids = []
         
         with conn.cursor() as cursor:
             for data in data_list:
-                doc_id = data.get("_id", str(uuid4()))
+                doc_id = data.get("_id")
+                if not doc_id:
+                    continue
+                
                 doc_ids.append(doc_id)
                 
                 insert_sql = f"""
@@ -65,28 +71,37 @@ def save_batch_to_raw_layer(
             conn.close()
 
 
-def move_data_to_postgres():
-    """
-    Extract data from requests_log collection in MongoDB and load to PostgreSQL.
-    The app saves all requests/responses to requests_log, so we process only this collection.
-    """
-    collection_name = "requests_log"
+def move_binance_data_to_postgres():
+    collection_name = "binance_data"
+    table_name = "raw_binance_data"
     
     conn = get_postgres_connection()
     
     try:
         print(f"Processing collection: {collection_name}")
+        create_raw_table_if_not_exists(conn, table_name)
+
+        processed_ids = get_processed_ids(conn, table_name)
+        print(f"Found {len(processed_ids)} already processed documents")
         
-        mongo_docs = get_all_data_from_mongo(collection_name)
-        print(f"Extracted {len(mongo_docs)} documents from {collection_name}")
+        db = get_mongo_database()
+        collection = db[collection_name]
+        
+        query = {}
+        if processed_ids:
+            object_ids = [ObjectId(id) for id in processed_ids if ObjectId.is_valid(id)]
+            if object_ids:
+                query = {"_id": {"$nin": object_ids}}
+        
+        mongo_docs = list(collection.find(query))
+        print(f"Extracted {len(mongo_docs)} new documents from {collection_name}")
         
         if not mongo_docs:
-            print(f"No data found in {collection_name}")
+            print(f"No new data found in {collection_name}")
             return True
         
         data_list = [convert_mongo_doc_to_dict(doc) for doc in mongo_docs]
         
-        table_name = "raw_requests_log"
         doc_ids = save_batch_to_raw_layer(
             data_list,
             table_name=table_name,
@@ -101,6 +116,53 @@ def move_data_to_postgres():
     finally:
         conn.close()
     
-    print("EL process completed successfully")
+    return True
+
+
+def move_news_data_to_postgres():
+    collection_name = "news_data"
+    table_name = "raw_news_data"
+    
+    conn = get_postgres_connection()
+    
+    try:
+        print(f"Processing collection: {collection_name}")
+        create_raw_table_if_not_exists(conn, table_name)
+
+        processed_ids = get_processed_ids(conn, table_name)
+        print(f"Found {len(processed_ids)} already processed documents")
+        
+        db = get_mongo_database()
+        collection = db[collection_name]
+        
+        query = {}
+        if processed_ids:
+            object_ids = [ObjectId(id) for id in processed_ids if ObjectId.is_valid(id)]
+            if object_ids:
+                query = {"_id": {"$nin": object_ids}}
+        
+        mongo_docs = list(collection.find(query))
+        print(f"Extracted {len(mongo_docs)} new documents from {collection_name}")
+        
+        if not mongo_docs:
+            print(f"No new data found in {collection_name}")
+            return True
+        
+        data_list = [convert_mongo_doc_to_dict(doc) for doc in mongo_docs]
+        
+        doc_ids = save_batch_to_raw_layer(
+            data_list,
+            table_name=table_name,
+            conn=conn
+        )
+        
+        print(f"Loaded {len(doc_ids)} records into raw.{table_name}")
+        
+    except Exception as e:
+        print(f"Error processing {collection_name}: {e}")
+        raise
+    finally:
+        conn.close()
+    
     return True
 
