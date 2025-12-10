@@ -28,12 +28,12 @@ def trigger_klines_collection():
     """Trigger app endpoint to fetch klines. App will save data to requests_log in MongoDB."""
     app_host = os.getenv("APP_HOST", "crypto-app")
     app_port = os.getenv("APP_PORT", "8000")
-    url = f"http://{app_host}:{app_port}/api/fetch-klines"
+    url = f"http://{app_host}:{app_port}/api/binance/fetch-klines"
     
     params = {
         "symbol": "BTCUSDT",
-        "interval": "1h",
-        "limit": 100
+        "interval": "1m",
+        "limit": 100   # на всякий случай ставим > 60
     }
     
     print(f"Triggering {url} with params: {params}")
@@ -50,10 +50,9 @@ def trigger_news_collection():
     """Trigger app endpoint to fetch news. App will save data to requests_log in MongoDB."""
     app_host = os.getenv("APP_HOST", "crypto-app")
     app_port = os.getenv("APP_PORT", "8000")
-    url = f"http://{app_host}:{app_port}/api/fetch-news"
+    url = f"http://{app_host}:{app_port}/api/news/fetch-news"
     
     params = {
-        "source": "cryptopanic",
         "limit": 50
     }
     
