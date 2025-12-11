@@ -32,11 +32,13 @@ app.include_router(news.router, prefix="/api", tags=["news"])
 
 @app.get("/")
 async def root() -> dict[str, str]:
+    """Return a welcome message for the API root."""
     return {"message": "Crypto Data Collector API"}
 
 
 @app.get("/health")
 async def health() -> dict[str, str]:
+    """Report application and MongoDB health status."""
     try:
         from app.database import get_db
 

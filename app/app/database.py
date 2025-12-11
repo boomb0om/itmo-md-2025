@@ -30,7 +30,7 @@ async def init_indexes():
     logger = get_logger(__name__)
     try:
         db = get_db()
-        
+
         # Create unique index on guid field for news_data
         news_collection = db.get_collection("news_data")
         news_collection.create_index("guid", unique=True)
@@ -40,13 +40,16 @@ async def init_indexes():
             await logger.info("Index already exists, skipping creation")
         else:
             await logger.warning(f"Failed to create indexes for news_data: {e}")
-    
+
     try:
         db = get_db()
         # Create unique compound index on (interval, open_time) for binance_data
         binance_collection = db.get_collection("binance_data")
         binance_collection.create_index([("interval", 1), ("open_time", 1)], unique=True)
-        await logger.info("Created compound index on ('interval', 'open_time') fields in 'binance_data' collection")
+        await logger.info(
+            "Created compound index on ('interval', 'open_time') fields in "
+            "'binance_data' collection"
+        )
     except Exception as e:
         if "index already exists" in str(e).lower():
             await logger.info("Index already exists, skipping creation")

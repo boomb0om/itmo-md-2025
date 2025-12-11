@@ -12,6 +12,7 @@ LOG_FORMAT = "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
 
 @lru_cache
 def get_logger(name: str) -> Logger:
+    """Create a cached async logger configured with app settings."""
     settings = get_settings()
     level = logging.getLevelName(settings.app.log_level.upper())
     logger = Logger(name=name, level=level)
