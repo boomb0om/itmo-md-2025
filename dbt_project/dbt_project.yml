@@ -4,10 +4,6 @@ config-version: 2
 
 profile: 'crypto_analytics'
 
-# Required for Elementary with dbt 1.8+
-flags:
-  require_explicit_package_overrides_for_builtin_materializations: false
-
 model-paths: ["models"]
 analysis-paths: ["analyses"]
 test-paths: ["tests"]
