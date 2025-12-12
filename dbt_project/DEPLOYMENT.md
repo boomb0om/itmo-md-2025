@@ -129,7 +129,22 @@ docker-compose build
 docker-compose up -d
 ```
 
-### Шаг 2: Проверить монтирование dbt_project
+### Шаг 2: Исправить права доступа
+
+Airflow контейнер должен иметь права на запись в директории dbt_project:
+```bash
+# Из корня проекта
+./fix_permissions.sh
+```
+
+Или вручную:
+```bash
+chmod -R 777 dbt_project/logs
+chmod -R 777 dbt_project/target
+chmod -R 777 dbt_project/edr_target
+```
+
+### Шаг 3: Проверить монтирование dbt_project
 
 В `airflow/docker-compose.yml` добавлен volume:
 ```yaml
@@ -143,7 +158,7 @@ docker exec -it airflow-scheduler-1 bash
 ls -la /opt/airflow/dbt_project
 ```
 
-### Шаг 3: Настроить переменные окружения
+### Шаг 4: Настроить переменные окружения
 
 Убедиться, что в `airflow/.env` или `docker-compose.yml` есть переменные:
 ```
@@ -154,14 +169,14 @@ POSTGRES_PASSWORD=analytics
 POSTGRES_DB=analytics
 ```
 
-### Шаг 4: Активировать DAG
+### Шаг 5: Активировать DAG
 
 1. Открыть Airflow UI: http://localhost:8080
 2. Найти DAG `dbt_transformation`
 3. Включить DAG (toggle switch)
 4. Запустить вручную для проверки (кнопка ▶)
 
-### Шаг 5: Проверить выполнение
+### Шаг 6: Проверить выполнение
 
 Проверить логи каждой задачи:
 - `dbt_deps` - установка пакетов
