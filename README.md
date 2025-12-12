@@ -1,109 +1,264 @@
 # ITMO MD 2025 - Crypto Data Pipeline
 
-Система собирает цены криптовалют и новости, складывает их в MongoDB, переносит в PostgreSQL raw слой и готовит данные для аналитики через dbt.
+Полноценный data pipeline для сбора, хранения и аналитики криптовалютных данных.
 
-## Modules
-- `app/` — FastAPI сервис, собирает свечи Binance и новости Crypto.news, пишет в MongoDB (`binance_data`, `news_data`, `requests_log`).
-- `airflow/` — DAGи:
-  - `collect_data` - вызывает эндпоинты app для сбора данных
-  - `el_process` - переносит данные из MongoDB в PostgreSQL raw слой
-  - `dbt_transformation` - запускает dbt модели (STG → ODS → DM) каждые 6 часов
-  - Стек: Airflow 2.10.5 + LocalExecutor + dbt + Elementary
-- `dwh/` — PostgreSQL 13 как хранилище данных (raw, stg, ods, dm схемы).
-- `dbt_project/` — dbt проект с моделями трансформации:
-  - STG (staging): распаковка JSONB, инкрементальная загрузка (delete+insert)
-  - ODS (operational data store): агрегация и обогащение (delete+insert, совместимо с PostgreSQL 13)
-  - DM (data marts): аналитические витрины (table)
-  - Тесты: 4 типа dbt-core (47 тестов ✅)
-  - Документация моделей и источников
-  - Elementary для мониторинга качества данных
+**Стек**: Python (FastAPI + MongoDB) → Airflow → PostgreSQL → DBT → Elementary
 
-## Data Flow
-1. App эндпоинты `/api/binance/fetch-klines` и `/api/news/fetch-news` пишут данные в MongoDB.
-2. Airflow `collect_data` вызывает эти эндпоинты по расписанию (каждый час).
-3. Airflow `el_process` переносит новые документы в PostgreSQL (`raw.raw_binance_data`, `raw.raw_news_data`) каждые 6 часов.
-4. Airflow `dbt_transformation` запускает dbt модели каждые 6 часов:
-   - **STG layer**: Распаковка JSONB → `stg.stg_binance_klines`, `stg.stg_news_articles`
-   - **ODS layer**: Агрегация и обогащение → `ods.ods_binance_daily_agg`, `ods.ods_news_enriched`
-   - **DM layer**: Аналитические витрины → `dm.dm_crypto_market_overview`, `dm.dm_news_impact_analysis`
-5. Elementary генерирует отчёт с результатами тестов и мониторинга качества данных.
+## Архитектура
 
-## Layout
+```
+┌─────────────┐
+│   Binance   │ ──┐
+│ Crypto.news │   │
+└─────────────┘   │
+                  ▼
+        ┌──────────────────┐
+        │  FastAPI App     │  Сбор данных
+        │  (app/)          │
+        └────────┬─────────┘
+                 │
+                 ▼
+        ┌──────────────────┐
+        │    MongoDB       │  Временное хранилище
+        │  (binance_data,  │
+        │   news_data)     │
+        └────────┬─────────┘
+                 │
+        ┌────────▼─────────┐
+        │  Airflow EL DAG  │  Перенос в DWH
+        └────────┬─────────┘
+                 │
+                 ▼
+        ┌──────────────────┐
+        │  PostgreSQL 13   │  Data Warehouse
+        │  raw schema      │  (raw_binance_data,
+        │  (JSONB)         │   raw_news_data)
+        └────────┬─────────┘
+                 │
+        ┌────────▼─────────┐
+        │  DBT Transform   │  STG → ODS → DM
+        │  (dbt_project/)  │
+        └────────┬─────────┘
+                 │
+                 ▼
+        ┌──────────────────┐
+        │  Analytics       │  stg.*, ods.*, dm.*
+        │  Schemas         │  + Elementary
+        └──────────────────┘
+```
+
+## Компоненты
+
+### 1. App (FastAPI + MongoDB)
+**Директория**: `app/`
+
+Сервис сбора данных через публичные API:
+- **Binance Klines API**: OHLCV свечи криптовалют
+- **Crypto.news RSS**: Новости о криптовалютах
+
+**Эндпоинты**:
+- `GET /api/binance/fetch-klines` - сбор свечей (params: symbol, interval, limit)
+- `GET /api/news/fetch-news` - сбор новостей (params: source, limit)
+- `GET /health` - проверка подключения к MongoDB
+
+**Технологии**: FastAPI, PyMongo, Pydantic, httpx
+
+### 2. Airflow (Оркестрация)
+**Директория**: `airflow/`
+
+Три DAG:
+1. **collect_data** (каждый час) - вызывает эндпоинты app для сбора данных
+2. **el_process** (каждые 6 часов) - переносит данные MongoDB → PostgreSQL raw
+3. **dbt_transformation** (каждые 6 часов) - запускает DBT модели + тесты + Elementary отчёт
+
+**Технологии**: Airflow 2.10.5, LocalExecutor, PostgresHook, dbt-core, elementary-data
+
+### 3. PostgreSQL (DWH)
+**Директория**: `dwh/`
+
+**Версия**: PostgreSQL 13
+
+**Схемы**:
+- `raw` - сырые JSONB данные из MongoDB
+- `stg` - staging (распакованные данные)
+- `ods` - operational data store (агрегаты, enrichment)
+- `dm` - data marts (аналитические витрины)
+- `elementary` - мониторинг качества данных
+
+### 4. DBT (Трансформации)
+**Директория**: `dbt_project/`
+
+**Архитектура**: STG → ODS → DM
+
+**Модели**:
+
+#### STG (Staging) - Распаковка JSONB
+- `stg_binance_klines` - свечи Binance (symbol, interval, OHLCV, timestamps)
+- `stg_news_articles` - новости (title, description, pub_date, categories)
+- **Стратегия**: incremental (delete+insert)
+- **Особенности**: распаковка JSONB, инкрементальная загрузка
+
+#### ODS (Operational Data Store) - Агрегация
+- `ods_binance_daily_agg` - дневные агрегаты (daily OHLC, volume, price_change_pct)
+- `ods_news_enriched` - обогащённые новости (sentiment, text metrics)
+- **Стратегия**: incremental (delete+insert)
+- **Особенности**: CTE, window functions, sentiment analysis
+
+#### DM (Data Marts) - Аналитика
+- `dm_crypto_market_overview` - обзор рынка (цены, MA 7d/30d, волатильность, тренды)
+- `dm_news_impact_analysis` - корреляция новостей и цен (sentiment vs price changes)
+- **Стратегия**: table (full refresh)
+- **Особенности**: window functions, CTE, cross joins для корреляций
+
+**SQL техники**:
+- Window functions: `avg() over()`, `stddev() over()`, `row_number()`
+- CTE (Common Table Expressions) во всех моделях
+- JSONB операции: `->>`, `->`, `jsonb_array_length()`
+- JOIN для получения first/last значений
+
+**Тестирование**:
+- **47 dbt-core тестов** ✅: unique, not_null, accepted_values, relationships
+- **10 Elementary тестов** ✅: volume_anomalies, column_anomalies, dimension_anomalies, etc.
+- **Итого**: 57 тестов
+
+**Версии** (совместимо с PostgreSQL 13):
+- dbt-core==1.8.7
+- dbt-postgres==1.8.2
+- elementary-data[postgres]==0.16.2
+
+### 5. Elementary (Мониторинг)
+**Директория**: `elementary/`
+
+Nginx сервер для раздачи HTML отчётов Elementary с результатами тестов и метриками качества данных.
+
+**URL**: http://localhost:8081/elementary_report.html
+
+## Структура проекта
+
 ```
 itmo-md-2025/
-├── app/                         # FastAPI сервис (см. app/README.md)
-│   ├── app/main.py
-│   └── app/service/
-├── airflow/                     # Airflow + DAGи и utils
-│   ├── dags/
-│   │   ├── collect_data_dag.py      # Сбор данных через app
-│   │   ├── el_process_dag.py        # MongoDB → PostgreSQL raw
-│   │   ├── dbt_transformation_dag.py # dbt трансформации
-│   │   └── utils/
+├── app/                              # FastAPI сервис
+│   ├── app/
+│   │   ├── main.py                   # Точка входа
+│   │   ├── api/                      # Роутеры (binance.py, news.py)
+│   │   ├── service/                  # Бизнес-логика
+│   │   ├── core/                     # Настройки, логирование
+│   │   └── database.py               # MongoDB подключение
 │   ├── Dockerfile
-│   ├── docker-compose.yml
-│   └── requirements.txt         # включает dbt + elementary
-├── dwh/                         # PostgreSQL хранилище
-├── dbt_project/                 # DBT проект (см. dbt_project/README.md)
+│   └── pyproject.toml
+├── airflow/                          # Airflow оркестрация
+│   ├── dags/
+│   │   ├── collect_data_dag.py       # Сбор данных
+│   │   ├── el_process_dag.py         # EL MongoDB → PostgreSQL
+│   │   ├── dbt_transformation_dag.py # DBT трансформации
+│   │   └── utils/                    # Helpers
+│   ├── Dockerfile
+│   └── requirements.txt              # dbt + elementary
+├── dwh/                              # PostgreSQL
+│   └── docker-compose.yml
+├── dbt_project/                      # DBT проект
 │   ├── models/
-│   │   ├── sources.yml         # raw источники
-│   │   ├── stg/                # Staging models
-│   │   ├── ods/                # ODS models
-│   │   └── dm/                 # Data Mart models
+│   │   ├── sources.yml               # Raw источники
+│   │   ├── stg/                      # Staging (2 модели)
+│   │   ├── ods/                      # ODS (2 модели)
+│   │   └── dm/                       # Data Marts (2 модели)
 │   ├── macros/
 │   ├── dbt_project.yml
-│   ├── profiles.yml
-│   ├── packages.yml            # Elementary
+│   ├── profiles.yml                  # Подключение к PostgreSQL
+│   ├── packages.yml                  # Elementary
 │   └── requirements.txt
-├── elementary/                  # Elementary report server
-│   ├── docker-compose.yml      # Nginx для раздачи отчётов
-│   └── README.md
-├── docker-compose.yaml          # главный compose
-└── docs/                        # материалы курса
+├── elementary/                       # Elementary report server
+│   └── docker-compose.yml            # Nginx
+├── docker-compose.yaml               # Главный compose
+├── fix_permissions.sh                # Фикс прав для Airflow
+├── DEPLOYMENT.md                     # Инструкции по развёртыванию
+└── SUBMISSION.md                     # Данные для сдачи
+
 ```
 
-## Quick Start
-1. Требования: Docker + Docker Compose, Python 3.11+ (для локальной разработки app).
-2. Создать env-файлы:
-```
+## Быстрый старт
+
+### 1. Клонирование и настройка
+
+```bash
+git clone https://github.com/boomb0om/itmo-md-2025.git
+cd itmo-md-2025
+
+# Создать .env файлы
 cp app/.env.example app/.env
 cp dwh/.env.example dwh/.env
 cp airflow/.env.example airflow/.env
+cp dbt_project/.env.example dbt_project/.env
+
+# Отредактировать при необходимости
+nano app/.env
+nano dwh/.env
+nano airflow/.env
+nano dbt_project/.env
 ```
-3. Запуск стека:
+
+### 2. Запуск всех сервисов
+
+```bash
+# Запуск всего стека
+docker-compose up -d
+
+# Проверка статуса
+docker ps
 ```
-docker-compose -f docker-compose.yaml up -d
+
+### 3. Проверка сервисов
+
+- **App Swagger**: http://localhost:8000/docs
+- **Airflow UI**: http://localhost:8080 (airflow/airflow)
+- **PostgreSQL**: localhost:5433 (analytics/analytics)
+- **MongoDB**: localhost:27017 (admin/admin)
+- **Elementary Report**: http://localhost:8081/elementary_report.html
+
+### 4. Ручной запуск DAG
+
+1. Откройте Airflow: http://localhost:8080
+2. Включите DAG `collect_data`, `el_process`, `dbt_transformation`
+3. Запустите их вручную (кнопка ▶)
+
+### 5. Проверка результатов
+
+```sql
+-- Подключиться к PostgreSQL
+psql -h localhost -p 5433 -U analytics -d analytics
+
+-- Проверить raw данные
+SELECT COUNT(*) FROM raw.raw_binance_data;
+SELECT COUNT(*) FROM raw.raw_news_data;
+
+-- Проверить STG слой
+SELECT COUNT(*) FROM stg.stg_binance_klines;
+SELECT COUNT(*) FROM stg.stg_news_articles;
+
+-- Проверить ODS слой
+SELECT COUNT(*) FROM ods.ods_binance_daily_agg;
+SELECT COUNT(*) FROM ods.ods_news_enriched;
+
+-- Проверить DM витрины
+SELECT * FROM dm.dm_crypto_market_overview LIMIT 10;
+SELECT * FROM dm.dm_news_impact_analysis LIMIT 10;
+
+-- Проверить Elementary тесты
+SELECT * FROM elementary.elementary_test_results
+ORDER BY detected_at DESC LIMIT 10;
 ```
-4. Проверки:
-- App: http://localhost:8000 (docs: /docs)
-- Airflow: http://localhost:8080 (логин/пароль: airflow/airflow)
-- PostgreSQL: порт 5433, БД `analytics`, пользователь/пароль `analytics`
-- MongoDB: порт 27017, БД `crypto_data`
-- Elementary Report: http://localhost:8081/elementary_report.html
 
-## Development
-- Установить зависимости app: `cd app && uv sync`
-- Запуск app локально: `uv run uvicorn app.main:app --reload`
-- Пре-коммиты: `pip install pre-commit && pre-commit install`
-- Проверка кодстайла: `pre-commit run --all-files`
+## Разработка
 
-## DBT Analytics
+### Локальная разработка App
 
-### Витрины данных
-После запуска dbt доступны следующие аналитические витрины:
+```bash
+cd app
+uv sync
+uv run uvicorn app.main:app --reload
+```
 
-1. **dm.dm_crypto_market_overview** - обзор крипторынка:
-   - Текущие цены и объёмы
-   - Moving averages (7d, 30d)
-   - Волатильность
-   - Индикаторы тренда
-
-2. **dm.dm_news_impact_analysis** - анализ влияния новостей:
-   - Sentiment анализ новостей (positive/negative/neutral)
-   - Корреляция sentiment с изменениями цен
-   - Ежедневные метрики новостей
-
-### Запуск dbt локально
+### Локальная работа с DBT
 
 ```bash
 cd dbt_project
@@ -111,66 +266,89 @@ cd dbt_project
 # Установить зависимости
 pip install -r requirements.txt
 
-# Создать profiles.yml
-mkdir -p ~/.dbt
-cat > ~/.dbt/profiles.yml << 'EOF'
-crypto_analytics:
-  target: dev
-  outputs:
-    dev:
-      type: postgres
-      host: localhost
-      port: 5433
-      user: analytics
-      password: analytics
-      dbname: analytics
-      schema: public
-      threads: 4
-      keepalives_idle: 0
-EOF
+# Загрузить переменные окружения
+export $(xargs < .env)
 
-# Установить пакеты
-dbt deps
+# Установить пакеты Elementary
+dbt deps --profiles-dir .
 
 # Проверить подключение
-dbt debug
+dbt debug --profiles-dir .
 
-# Запустить модели (STG → ODS → DM)
-dbt run
+# Запустить модели
+dbt run --profiles-dir .
 
-# Запустить тесты (47 тестов)
-dbt test
+# Запустить тесты
+dbt test --profiles-dir .
 
-# Сгенерировать документацию
-dbt docs generate
-dbt docs serve --port 8001
+# Сгенерировать Elementary отчёт
+edr report --profiles-dir .
 
-# Открыть http://localhost:8001 для просмотра DAG графа и документации
+# Сгенерировать dbt документацию
+dbt docs generate --profiles-dir .
+dbt docs serve --port 8001 --profiles-dir .
 ```
 
-**Результат**:
-- ✅ 35 моделей созданы (STG: 2, ODS: 2, DM: 2, Elementary: 29)
-- ✅ 47 тестов прошли успешно
-- ✅ Схемы stg, ods, dm, elementary созданы в PostgreSQL
+### Pre-commit хуки
 
-## Тестирование и качество данных
+```bash
+pip install pre-commit
+pre-commit install
+pre-commit run --all-files
+```
 
-Проект использует:
-- **4 типа dbt-core тестов**: unique, not_null, accepted_values, relationships (47 тестов, все прошли ✅)
-- **Elementary** для мониторинга качества данных и генерации отчётов
-- **Window functions** в SQL для расчёта moving averages и агрегаций
-- **CTE (Common Table Expressions)** во всех ODS и DM моделях
-- **Инкрементальная загрузка**: delete+insert стратегия (совместимо с PostgreSQL 13)
-- **Jinja шаблоны** для параметризации моделей
+## Data Flow
 
-### Версии (совместимо с PostgreSQL 13)
-- dbt-core==1.8.7
-- dbt-postgres==1.8.2
-- elementary-data[postgres]==0.16.2
+1. **Сбор данных** (каждый час):
+   - Airflow DAG `collect_data` → App endpoints → MongoDB
 
-## References
-- `app/README.md` - описание FastAPI сервиса
-- `airflow/README.md` - описание DAG'ов
-- `dwh/README.md` - структура БД
-- `dbt_project/README.md` - **подробное описание dbt проекта, моделей, тестов**
-- `docs/hw1.md` - отчёт по дз-1
+2. **EL процесс** (каждые 6 часов):
+   - Airflow DAG `el_process` → MongoDB → PostgreSQL raw (JSONB)
+
+3. **DBT трансформации** (каждые 6 часов):
+   - Airflow DAG `dbt_transformation`:
+     - `dbt run --select tag:staging` → STG слой
+     - `dbt test --select tag:staging`
+     - `dbt run --select tag:ods` → ODS слой
+     - `dbt test --select tag:ods`
+     - `dbt run --select tag:datamart` → DM слой
+     - `dbt test` → Все тесты (dbt-core + Elementary)
+     - `edr report` → Генерация отчёта
+
+## Требования курса
+
+Проект выполнен в соответствии с требованиями курса ITMO MD 2025:
+
+✅ **Базовый проект (50 баллов)**:
+- Python сервис → MongoDB → EL процесс → PostgreSQL raw → DBT (STG → ODS → DM)
+
+✅ **Качество кода (10 баллов)**:
+- Pre-commit хуки (ruff, black)
+- Документация (README, DEPLOYMENT)
+- SQL форматирование, window functions, CTE
+
+✅ **DBT продвинутые возможности (20 баллов)**:
+- Jinja шаблоны в каждой модели
+- 4 типа dbt-core тестов (47 тестов)
+- 6 типов Elementary тестов (10 тестов)
+- Документация моделей и колонок
+- Теги для управления запуском
+- 2 инкрементальные стратегии (delete+insert, table)
+
+**Итого**: 80/120 баллов
+**Дополнительно можно**: визуализация (+10), презентация (+10), CI/CD (+10)
+
+Подробнее см. `REQUIREMENTS_CHECKLIST.md`
+
+## Полезные ссылки
+
+- [DBT Documentation](https://docs.getdbt.com/)
+- [Elementary Data](https://docs.elementary-data.com/)
+- [Airflow Documentation](https://airflow.apache.org/docs/)
+- [FastAPI Documentation](https://fastapi.tiangolo.com/)
+
+## Сдача проекта
+
+См. `SUBMISSION.md` для данных по сдаче (URLs, credentials).
+
+См. `DEPLOYMENT.md` для инструкций по развёртыванию на сервере.
