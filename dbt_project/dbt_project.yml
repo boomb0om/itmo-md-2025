@@ -4,6 +4,10 @@ config-version: 2
 
 profile: 'crypto_analytics'
 
+# Required for Elementary with dbt 1.8+
+flags:
+  require_explicit_package_overrides_for_builtin_materializations: false
+
 model-paths: ["models"]
 analysis-paths: ["analyses"]
 test-paths: ["tests"]
@@ -26,7 +30,7 @@ models:
     ods:
       +materialized: incremental
       +schema: ods
-      +incremental_strategy: merge
+      +incremental_strategy: delete+insert
       +tags: ["ods"]
 
     dm:
