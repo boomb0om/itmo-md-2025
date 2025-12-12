@@ -1,0 +1,46 @@
+version: 2
+
+sources:
+  - name: raw_data
+    description: "Raw data extracted from MongoDB and loaded into PostgreSQL"
+    database: analytics
+    schema: raw
+    freshness:
+      warn_after: {count: 12, period: hour}
+      error_after: {count: 24, period: hour}
+    loaded_at_field: process_at
+
+    tables:
+      - name: raw_binance_data
+        description: "Raw Binance klines/candles data in JSONB format"
+        columns:
+          - name: id
+            description: "MongoDB document _id"
+            tests:
+              - not_null
+              - unique
+          - name: process_at
+            description: "Timestamp when the record was loaded to PostgreSQL"
+            tests:
+              - not_null
+          - name: data
+            description: "JSONB column with full Binance candle data"
+            tests:
+              - not_null
+
+      - name: raw_news_data
+        description: "Raw crypto news data from RSS feeds in JSONB format"
+        columns:
+          - name: id
+            description: "MongoDB document _id"
+            tests:
+              - not_null
+              - unique
+          - name: process_at
+            description: "Timestamp when the record was loaded to PostgreSQL"
+            tests:
+              - not_null
+          - name: data
+            description: "JSONB column with full news article data"
+            tests:
+              - not_null

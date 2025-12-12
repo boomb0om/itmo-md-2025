@@ -5,6 +5,13 @@ dwh/volumes/
 # Airflow
 airflow/logs/
 
+# DBT
+dbt_project/dbt_packages/
+dbt_project/target/
+dbt_project/logs/
+dbt_project/edr_target/
+dbt_project/.env
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[codz]

@@ -1,0 +1,38 @@
+name: 'crypto_analytics'
+version: '1.0.0'
+config-version: 2
+
+profile: 'crypto_analytics'
+
+model-paths: ["models"]
+analysis-paths: ["analyses"]
+test-paths: ["tests"]
+seed-paths: ["seeds"]
+macro-paths: ["macros"]
+snapshot-paths: ["snapshots"]
+
+clean-targets:
+  - "target"
+  - "dbt_packages"
+
+models:
+  crypto_analytics:
+    stg:
+      +materialized: incremental
+      +schema: stg
+      +incremental_strategy: delete+insert
+      +tags: ["staging"]
+
+    ods:
+      +materialized: incremental
+      +schema: ods
+      +incremental_strategy: merge
+      +tags: ["ods"]
+
+    dm:
+      +materialized: table
+      +schema: dm
+      +tags: ["datamart"]
+
+  elementary:
+    +schema: elementary

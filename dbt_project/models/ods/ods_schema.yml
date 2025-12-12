@@ -1,0 +1,74 @@
+version: 2
+
+models:
+  - name: ods_binance_daily_agg
+    description: "Daily aggregated OHLCV data for crypto pairs with price change metrics"
+    tests:
+      - elementary.volume_anomalies:
+          timestamp_column: "trade_date"
+      - elementary.all_columns_anomalies:
+          timestamp_column: "trade_date"
+    columns:
+      - name: symbol
+        description: "Trading pair symbol"
+        tests:
+          - not_null
+          - relationships:
+              to: ref('stg_binance_klines')
+              field: symbol
+
+      - name: trade_date
+        description: "Trading date"
+        tests:
+          - not_null
+
+      - name: daily_open
+        description: "First opening price of the day"
+        tests:
+          - not_null
+
+      - name: daily_close
+        description: "Last closing price of the day"
+        tests:
+          - not_null
+
+      - name: price_change_pct
+        description: "Daily price change in percentage"
+
+      - name: daily_volume
+        description: "Total daily trading volume"
+        tests:
+          - not_null
+
+  - name: ods_news_enriched
+    description: "Enriched news data with sentiment analysis and text metrics"
+    tests:
+      - elementary.dimension_anomalies:
+          timestamp_column: "pub_date"
+          dimensions:
+            - sentiment
+            - source
+    columns:
+      - name: news_id
+        description: "Unique news article identifier"
+        tests:
+          - not_null
+          - unique
+
+      - name: pub_date
+        description: "Publication date and time"
+        tests:
+          - not_null
+
+      - name: sentiment
+        description: "Article sentiment (positive/negative/neutral)"
+        tests:
+          - not_null
+          - accepted_values:
+              values: ['positive', 'negative', 'neutral']
+
+      - name: title_length
+        description: "Length of article title"
+
+      - name: categories_count
+        description: "Number of categories assigned"
