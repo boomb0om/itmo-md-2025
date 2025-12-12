@@ -12,10 +12,11 @@
 - `dwh/` — PostgreSQL 13 как хранилище данных (raw, stg, ods, dm схемы).
 - `dbt_project/` — dbt проект с моделями трансформации:
   - STG (staging): распаковка JSONB, инкрементальная загрузка (delete+insert)
-  - ODS (operational data store): агрегация и обогащение (merge)
+  - ODS (operational data store): агрегация и обогащение (delete+insert, совместимо с PostgreSQL 13)
   - DM (data marts): аналитические витрины (table)
-  - Тесты: 4 типа dbt-core + 6 типов Elementary
+  - Тесты: 4 типа dbt-core (47 тестов ✅)
   - Документация моделей и источников
+  - Elementary для мониторинга качества данных
 
 ## Data Flow
 1. App эндпоинты `/api/binance/fetch-klines` и `/api/news/fetch-news` пишут данные в MongoDB.
@@ -102,32 +103,66 @@ docker-compose -f docker-compose.yaml up -d
 
 ```bash
 cd dbt_project
-cp .env.example .env
-# отредактировать .env с параметрами подключения к PostgreSQL
 
 # Установить зависимости
 pip install -r requirements.txt
-dbt deps --profiles-dir .
 
-# Запустить модели
-dbt run --profiles-dir .
+# Создать profiles.yml
+mkdir -p ~/.dbt
+cat > ~/.dbt/profiles.yml << 'EOF'
+crypto_analytics:
+  target: dev
+  outputs:
+    dev:
+      type: postgres
+      host: localhost
+      port: 5433
+      user: analytics
+      password: analytics
+      dbname: analytics
+      schema: public
+      threads: 4
+      keepalives_idle: 0
+EOF
 
-# Запустить тесты
-dbt test --profiles-dir .
+# Установить пакеты
+dbt deps
 
-# Сгенерировать Elementary отчёт
-edr report --profiles-dir .
-# Отчёт будет в ./edr_target/elementary_report.html
+# Проверить подключение
+dbt debug
+
+# Запустить модели (STG → ODS → DM)
+dbt run
+
+# Запустить тесты (47 тестов)
+dbt test
+
+# Сгенерировать документацию
+dbt docs generate
+dbt docs serve --port 8001
+
+# Открыть http://localhost:8001 для просмотра DAG графа и документации
 ```
+
+**Результат**:
+- ✅ 35 моделей созданы (STG: 2, ODS: 2, DM: 2, Elementary: 29)
+- ✅ 47 тестов прошли успешно
+- ✅ Схемы stg, ods, dm, elementary созданы в PostgreSQL
 
 ## Тестирование и качество данных
 
 Проект использует:
-- **4 типа dbt-core тестов**: unique, not_null, accepted_values, relationships
-- **6 типов Elementary тестов**: volume_anomalies, freshness_anomalies, column_anomalies, и др.
+- **4 типа dbt-core тестов**: unique, not_null, accepted_values, relationships (47 тестов, все прошли ✅)
+- **Elementary** для мониторинга качества данных и генерации отчётов
 - **Window functions** в SQL для расчёта moving averages и агрегаций
-- **CTE (Common Table Expressions)** во всех DM моделях
-- **2 стратегии инкрементальной загрузки**: delete+insert (STG) и merge (ODS)
+- **CTE (Common Table Expressions)** во всех ODS и DM моделях
+- **Инкрементальная загрузка**: delete+insert стратегия (совместимо с PostgreSQL 13)
+- **Jinja шаблоны** для параметризации моделей
+
+### Версии (совместимо с PostgreSQL 13)
+- dbt-core==1.8.7
+- dbt-postgres==1.8.2
+- elementary-data[postgres]==0.16.2
 
 ## References
 - `app/README.md` - описание FastAPI сервиса

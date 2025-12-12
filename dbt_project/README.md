@@ -40,13 +40,13 @@ dbt_project/
 **Описание**: Извлекает данные из raw слоя (JSONB) и преобразует в структурированные таблицы.
 
 ### Слой ODS (Operational Data Store)
-**Стратегия**: `merge` - слияние данных по ключам
+**Стратегия**: `delete+insert` - удаление и вставка по ключам (совместимо с PostgreSQL 13)
 
 **Модели:**
-- `ods_binance_daily_agg` - дневная агрегация OHLCV с использованием оконных функций
+- `ods_binance_daily_agg` - дневная агрегация OHLCV
   - Дневные OHLC, объёмы, количество сделок
   - Изменение цены в процентах
-  - Window functions для расчёта open/close
+  - CTE с агрегациями + JOIN для расчёта open/close (совместимо с PostgreSQL 13)
 
 - `ods_news_enriched` - обогащённые новости
   - Sentiment analysis (positive/negative/neutral)
@@ -77,136 +77,186 @@ dbt_project/
 ## Используемые техники
 
 ### SQL Features
-- **Window Functions**: `first_value()`, `last_value()`, `avg() over()`, `stddev() over()`
-- **CTE (Common Table Expressions)**: Все модели DM используют CTE
+- **Window Functions**: `avg() over()`, `stddev() over()`, `row_number()` (в DM слое)
+- **CTE (Common Table Expressions)**: Все модели ODS и DM используют CTE
 - **Aggregations**: `sum()`, `count()`, `max()`, `min()`, `avg()`
 - **JSONB операции**: `->>`, `->`, `jsonb_array_length()`
+- **JOINs**: LEFT JOIN для получения first/last значений в ODS
 
 ### DBT Features
-- **Jinja templates**: Макросы `{{ config() }}`, `{{ ref() }}`, `{{ source() }}`
-- **Incremental models**: 2 стратегии - `delete+insert` (STG) и `merge` (ODS)
+- **Jinja templates**: Макросы `{{ config() }}`, `{{ ref() }}`, `{{ source() }}`, `{% if is_incremental() %}`
+- **Incremental models**: Стратегия `delete+insert` (STG и ODS - совместимо с PostgreSQL 13)
 - **Tags**: `staging`, `ods`, `datamart` для управления запуском
 - **Custom schemas**: Модели создаются в отдельных схемах (stg, ods, dm)
-- **Tests**: 4 типа dbt-core + 6 типов Elementary
+- **Tests**: 4 типа dbt-core тестов (unique, not_null, accepted_values, relationships)
+- **Documentation**: Все модели документированы в schema.yml файлах
 
 ## Тестирование
 
 ### DBT Core Tests (4 типа)
-1. `unique` - уникальность ID
-2. `not_null` - обязательные поля
-3. `accepted_values` - допустимые значения (interval, sentiment, trend)
-4. `relationships` - целостность связей между таблицами
+1. **`unique`** - уникальность ID (binance_id, news_id)
+2. **`not_null`** - обязательные поля (symbol, open_time, pub_date, etc.)
+3. **`accepted_values`** - допустимые значения:
+   - interval: ['1m', '5m', '15m', '1h', '4h', '1d']
+   - sentiment: ['positive', 'negative', 'neutral']
+   - trend_indicator: ['uptrend', 'downtrend', 'sideways']
+   - sentiment_price_correlation: ['positive_correlation', 'negative_correlation', 'no_correlation']
+4. **`relationships`** - целостность связей:
+   - ods_binance_daily_agg.symbol → stg_binance_klines.symbol
 
-### Elementary Tests (6 типов)
-1. `volume_anomalies` - аномалии в объёме данных
-2. `freshness_anomalies` - проверка свежести данных
-3. `event_freshness_anomalies` - свежесть событий (pub_date vs process_at)
-4. `column_anomalies` - аномалии в значениях колонок (цены, объёмы)
-5. `all_columns_anomalies` - проверка всех колонок на аномалии
-6. `dimension_anomalies` - распределение категориальных данных (sentiment, source)
+**Всего тестов**: 47 (все прошли успешно ✅)
 
 ## Настройка и запуск
 
 ### 1. Установка зависимостей
 
 ```bash
-pip install dbt-core dbt-postgres elementary-data
+pip install -r requirements.txt
+# или
+pip install dbt-core==1.8.7 dbt-postgres==1.8.2 elementary-data[postgres]==0.16.2
 ```
 
-### 2. Настройка окружения
+**Важно**: Версии совместимы с PostgreSQL 13 и не имеют конфликтов protobuf.
 
-Создать `.env` файл:
-```bash
-cp .env.example .env
+### 2. Настройка profiles.yml
+
+Создать файл `~/.dbt/profiles.yml`:
+
+```yaml
+crypto_analytics:
+  target: dev
+  outputs:
+    dev:
+      type: postgres
+      host: localhost
+      port: 5433
+      user: analytics
+      password: analytics
+      dbname: analytics
+      schema: public
+      threads: 4
+      keepalives_idle: 0
 ```
 
-Отредактировать переменные:
-```
-POSTGRES_HOST=localhost          # или IP сервера
-POSTGRES_USER=analytics
-POSTGRES_PASSWORD=analytics
-POSTGRES_PORT=5433
-POSTGRES_DB=analytics
-```
+Или использовать профиль в папке проекта (файл уже есть в `dbt_project/profiles.yml`).
 
 ### 3. Установка пакетов Elementary
 
 ```bash
 cd dbt_project
-dbt deps --profiles-dir .
+dbt deps
 ```
 
-### 4. Запуск моделей
+Это установит пакет `elementary-data/elementary` для мониторинга качества данных.
+
+### 4. Проверка подключения
 
 ```bash
-# Запустить все модели
-dbt run --profiles-dir .
-
-# Запустить только STG
-dbt run --select tag:staging --profiles-dir .
-
-# Запустить только ODS
-dbt run --select tag:ods --profiles-dir .
-
-# Запустить только DM
-dbt run --select tag:datamart --profiles-dir .
+dbt debug
 ```
 
-### 5. Запуск тестов
+Должно показать "All checks passed!" ✅
+
+### 5. Запуск моделей
 
 ```bash
-# Все тесты
-dbt test --profiles-dir .
+# Запустить все модели (STG → ODS → DM)
+dbt run
+
+# Запустить только конкретный слой
+dbt run --select tag:staging
+dbt run --select tag:ods
+dbt run --select tag:datamart
+
+# Запустить конкретную модель
+dbt run --select dm_crypto_market_overview
+```
+
+**Результат**: Создаются таблицы в схемах `stg`, `ods`, `dm`.
+
+### 6. Запуск тестов
+
+```bash
+# Все тесты (47 штук)
+dbt test
 
 # Тесты конкретного слоя
-dbt test --select tag:staging --profiles-dir .
+dbt test --select tag:staging
+
+# Тесты конкретной модели
+dbt test --select stg_binance_klines
 ```
 
-### 6. Генерация Elementary отчёта
+**Ожидаемый результат**: `Done. PASS=47 WARN=0 ERROR=0 SKIP=0 TOTAL=47` ✅
+
+### 7. Генерация документации
 
 ```bash
-# Установить edr CLI
-pip install elementary-data[postgres]
+# Сгенерировать документацию
+dbt docs generate
 
-# Сгенерировать HTML отчёт
-edr report --profiles-dir .
-
-# Отчёт будет сохранён в ./edr_target/elementary_report.html
+# Запустить веб-сервер с документацией
+dbt docs serve --port 8001
 ```
 
-### 7. Запуск через Airflow
+Откройте в браузере `http://localhost:8001` для просмотра:
+- DAG графа зависимостей моделей
+- Описания всех колонок
+- Результатов тестов
+- SQL кода моделей
 
-DAG `dbt_transformation` автоматически запускается каждые 6 часов:
-1. Установка зависимостей (dbt deps)
-2. Запуск STG моделей
-3. Тестирование STG
-4. Запуск ODS моделей
-5. Тестирование ODS
-6. Запуск DM моделей
-7. Запуск всех тестов
-8. Генерация Elementary отчёта
+### 8. Запуск через Airflow
+
+DAG `dbt_transformation_dag` автоматически запускается каждые 6 часов:
+
+**Последовательность задач:**
+1. `dbt_deps` - Установка пакетов
+2. `dbt_run_staging` - Запуск STG моделей
+3. `dbt_test_staging` - Тесты STG
+4. `dbt_run_ods` - Запуск ODS моделей
+5. `dbt_test_ods` - Тесты ODS
+6. `dbt_run_dm` - Запуск DM моделей
+7. `dbt_test_all` - Все тесты
+8. `elementary_report` - Генерация отчёта мониторинга
+
+**Airflow UI**: `http://localhost:8080`
 
 ## Используемые инкрементальные стратегии
 
-### 1. delete+insert (STG слой)
+### 1. delete+insert (STG и ODS слои)
 ```sql
 config(
     materialized='incremental',
     incremental_strategy='delete+insert',
-    unique_key='binance_id'
+    unique_key='binance_id'  # или ['symbol', 'trade_date'] для составного ключа
 )
 ```
-**Описание**: Удаляет существующие записи по ключу и вставляет новые. Подходит для данных, которые не изменяются после вставки.
 
-### 2. merge (ODS слой)
+**Описание**: Удаляет существующие записи по ключу и вставляет новые.
+
+**Почему используется**:
+- Совместимо с PostgreSQL 13 (MERGE появился только в PostgreSQL 15)
+- Гарантирует отсутствие дубликатов
+- Подходит для данных, которые не изменяются после вставки
+
+**Применяется в**:
+- `stg_binance_klines` (unique_key: binance_id)
+- `stg_news_articles` (unique_key: news_id)
+- `ods_binance_daily_agg` (unique_key: [symbol, trade_date])
+- `ods_news_enriched` (unique_key: news_id)
+
+### 2. table (DM слой)
 ```sql
 config(
-    materialized='incremental',
-    incremental_strategy='merge',
-    unique_key=['symbol', 'trade_date']
+    materialized='table'
 )
 ```
-**Описание**: Использует SQL MERGE для обновления существующих записей и вставки новых. Подходит для данных, которые могут обновляться.
+
+**Описание**: Полная перезагрузка таблицы при каждом запуске.
+
+**Применяется в**:
+- `dm_crypto_market_overview` - агрегирует все данные за весь период
+- `dm_news_impact_analysis` - анализ корреляций требует полных данных
 
 ## Data Flow
 
@@ -217,39 +267,52 @@ MongoDB (binance_data, news_data)
          ↓
 PostgreSQL raw.raw_binance_data, raw.raw_news_data (JSONB)
          ↓
-    [DBT STG] - delete+insert
+    [DBT STG] - delete+insert (инкрементальная загрузка)
          ↓
 stg.stg_binance_klines, stg.stg_news_articles
          ↓
-    [DBT ODS] - merge
+    [DBT ODS] - delete+insert (инкрементальная загрузка)
          ↓
 ods.ods_binance_daily_agg, ods.ods_news_enriched
          ↓
-    [DBT DM] - table
+    [DBT DM] - table (полная перезагрузка)
          ↓
 dm.dm_crypto_market_overview, dm.dm_news_impact_analysis
          ↓
-    [BI Tools / Analysts]
+    [BI Tools / Analysts / Dashboards]
 ```
 
 ## Полезные команды
 
 ```bash
 # Документация моделей
-dbt docs generate --profiles-dir .
-dbt docs serve --profiles-dir .
+dbt docs generate
+dbt docs serve --port 8001
 
-# Компиляция SQL без выполнения
-dbt compile --profiles-dir .
+# Компиляция SQL без выполнения (для проверки)
+dbt compile
 
-# Только определённая модель
-dbt run --select dm_crypto_market_overview --profiles-dir .
+# Запуск определённой модели
+dbt run --select dm_crypto_market_overview
 
-# Модель и все зависимости
-dbt run --select +dm_crypto_market_overview --profiles-dir .
+# Модель и все зависимости (upstream)
+dbt run --select +dm_crypto_market_overview
 
-# Очистка артефактов
+# Модель и все зависящие от неё (downstream)
+dbt run --select dm_crypto_market_overview+
+
+# Запуск по тегам
+dbt run --select tag:staging
+dbt test --select tag:ods
+
+# Полный рефреш (игнорировать инкрементальность)
+dbt run --full-refresh
+
+# Очистка артефактов (target/, dbt_packages/)
 dbt clean
+
+# Просмотр скомпилированного SQL
+cat target/compiled/crypto_analytics/models/dm/dm_crypto_market_overview.sql
 ```
 
 ## Требования к данным

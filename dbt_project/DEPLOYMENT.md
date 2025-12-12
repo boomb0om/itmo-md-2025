@@ -112,12 +112,14 @@ xdg-open ./edr_target/elementary_report.html  # Linux
 
 ### Шаг 1: Обновить Docker образ Airflow
 
-Файл `airflow/requirements.txt` уже содержит зависимости dbt:
+Файл `airflow/requirements.txt` уже содержит зависимости dbt (совместимые с PostgreSQL 13):
 ```
-dbt-core==1.9.2
-dbt-postgres==1.9.0
-elementary-data==0.18.2
+dbt-core==1.8.7
+dbt-postgres==1.8.2
+elementary-data[postgres]==0.16.2
 ```
+
+**Важно**: Версии понижены для совместимости с PostgreSQL 13 и устранения конфликтов protobuf.
 
 Пересобрать образ:
 ```bash
