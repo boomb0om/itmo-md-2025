@@ -1,33 +1,24 @@
 # DWH Module
 
-## Purpose
-PostgreSQL data warehouse for storing analytical data extracted from MongoDB.
-
-## Stack
-- **Database**: PostgreSQL 13
-- **Containerization**: Docker Compose
+PostgreSQL 13 для raw-слоя, куда Airflow пишет `raw_binance_data` и `raw_news_data`.
 
 ## Structure
 ```
 dwh/
-├── .env                 # Environment variables (create from .env.example)
+├── docker-compose.yml
 ├── .env.example
-└── docker-compose.yml
+└── .env
 ```
 
-## Start Commands
-
-```bash
+## Run
+```
 cd dwh
 cp .env.example .env
-# Edit .env if needed
-docker-compose up -d
+docker-compose --env-file .env up -d
 ```
 
 ## Connection
-- **Host**: localhost (external) / postgres-analytics (internal)
-- **Port**: 5433 (external) / 5432 (internal)
-- **Database**: analytics (default)
-- **User**: analytics (default)
-- **Password**: analytics (default)
-
+- Host: localhost (контейнер: postgres-analytics)
+- Port: 5433 внешний / 5432 внутренний
+- Database: analytics
+- User/Password: analytics

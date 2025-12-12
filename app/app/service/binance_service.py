@@ -10,6 +10,7 @@ from app.database import get_db
 
 
 async def fetch_klines(symbol: str, interval: str, limit: int = 100) -> dict[str, Any]:
+    """Collect klines from Binance, dedupe by open_time and persist to MongoDB."""
     logger = get_logger(__name__)
     settings = get_settings()
     url = f"{settings.binance.base_url}/klines"
@@ -53,24 +54,21 @@ async def fetch_klines(symbol: str, interval: str, limit: int = 100) -> dict[str
             # Get existing (interval, open_time) pairs to avoid duplicates
             open_times = [doc["open_time"] for doc in klines_docs]
             existing_records = collection.find(
-                {
-                    "interval": interval,
-                    "open_time": {"$in": open_times}
-                },
-                {"interval": 1, "open_time": 1}
+                {"interval": interval, "open_time": {"$in": open_times}},
+                {"interval": 1, "open_time": 1},
             )
             # Create set of (interval, open_time) tuples
             existing_pairs = set(
-                (record["interval"], record["open_time"]) 
-                for record in existing_records
+                (record["interval"], record["open_time"]) for record in existing_records
             )
-            
+
             # Filter out klines that already exist
             new_docs = [
-                doc for doc in klines_docs 
+                doc
+                for doc in klines_docs
                 if (doc["interval"], doc["open_time"]) not in existing_pairs
             ]
-            
+
             if new_docs:
                 try:
                     collection.insert_many(new_docs, ordered=False)
@@ -84,7 +82,7 @@ async def fetch_klines(symbol: str, interval: str, limit: int = 100) -> dict[str
         total_fetched = len(klines_docs)
         item_count = len(new_docs)
         skipped = total_fetched - item_count
-        
+
         msg = (
             f"Fetched {total_fetched} klines for {symbol}, "
             f"added {item_count} new, skipped {skipped} duplicates"

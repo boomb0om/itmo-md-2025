@@ -1,43 +1,30 @@
 # Airflow Module
 
-## Purpose
-Apache Airflow orchestration service for scheduling data collection tasks and EL processes (MongoDB to PostgreSQL).
-
-## Stack
-- **Orchestrator**: Apache Airflow 2.10.5
-- **Executor**: LocalExecutor
-- **Database**: PostgreSQL (for Airflow metadata)
-- **Containerization**: Docker Compose
+Orchestrates сбор данных и перенос Mongo -> Postgres raw.
 
 ## Structure
 ```
 airflow/
-├── .env                 # Environment variables (create from .env.example)
-├── .env.example
-├── docker-compose.yml
+├── dags/
+│   ├── collect_data_dag.py      # триггерит эндпоинты app каждый час
+│   ├── el_process_dag.py        # планировщик EL каждые 6 часов
+│   └── utils/                   # подключения и логика переноса
 ├── Dockerfile
+├── docker-compose.yml
 ├── requirements.txt
-└── dags/
-    ├── collect_data_dag.py    # Triggers app endpoints every hour
-    ├── el_process_dag.py      # EL: MongoDB -> PostgreSQL
-    └── el_process_logic.py    # EL logic functions
-```
-
-## Start Commands
-
-```bash
-cd airflow
-cp .env.example .env
-# Edit .env if needed (set AIRFLOW__CORE__FERNET_KEY)
-export AIRFLOW_UID=$(id -u)
-docker-compose up -d
+└── .env.example
 ```
 
 ## DAGs
-- **collect_data**: Runs every hour, triggers `/api/fetch-klines` and `/api/fetch-news`
-- **el_process**: Runs every 6 hours, extracts data from MongoDB and loads to PostgreSQL
+- `collect_data`: вызывает `/api/binance/fetch-klines` и `/api/news/fetch-news`
+- `el_process`: переносит новые документы в `raw.raw_binance_data` и `raw.raw_news_data`
 
-## Web UI
-- **URL**: http://localhost:8080
-- **Username**: airflow (default)
-- **Password**: airflow (default)
+## Run
+```
+cd airflow
+cp .env.example .env
+export AIRFLOW_UID=$(id -u)
+docker-compose --env-file .env up -d
+```
+
+Web UI: http://localhost:8080 (логин/пароль airflow/airflow)

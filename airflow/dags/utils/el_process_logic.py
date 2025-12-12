@@ -9,6 +9,7 @@ from utils.postgres_utils import create_raw_table_if_not_exists
 
 
 def convert_mongo_doc_to_dict(doc: Dict[str, Any]) -> Dict[str, Any]:
+    """Prepare Mongo doc for JSONB storage by stringifying ids and datetimes."""
     result = {}
     for key, value in doc.items():
         if key == "_id":
@@ -32,6 +33,7 @@ def save_batch_to_raw_layer(
     table_name: str = "raw_data",
     conn=None,
 ) -> List[str]:
+    """Insert or upsert a batch of JSON-serializable docs into the raw schema."""
     if conn is None:
         conn = get_postgres_connection()
         should_close = True
@@ -72,6 +74,7 @@ def save_batch_to_raw_layer(
 
 
 def move_binance_data_to_postgres():
+    """Move new Binance candles from Mongo to Postgres raw layer."""
     collection_name = "binance_data"
     table_name = "raw_binance_data"
     
@@ -92,6 +95,7 @@ def move_binance_data_to_postgres():
             object_ids = [ObjectId(id) for id in processed_ids if ObjectId.is_valid(id)]
             if object_ids:
                 query = {"_id": {"$nin": object_ids}}
+        # Only pick documents that were not yet loaded to avoid double writes.
         
         mongo_docs = list(collection.find(query))
         print(f"Extracted {len(mongo_docs)} new documents from {collection_name}")
@@ -120,6 +124,7 @@ def move_binance_data_to_postgres():
 
 
 def move_news_data_to_postgres():
+    """Move new news documents from Mongo to Postgres raw layer."""
     collection_name = "news_data"
     table_name = "raw_news_data"
     
@@ -140,6 +145,7 @@ def move_news_data_to_postgres():
             object_ids = [ObjectId(id) for id in processed_ids if ObjectId.is_valid(id)]
             if object_ids:
                 query = {"_id": {"$nin": object_ids}}
+        # Skip documents we have already persisted to raw storage.
         
         mongo_docs = list(collection.find(query))
         print(f"Extracted {len(mongo_docs)} new documents from {collection_name}")

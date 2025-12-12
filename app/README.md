@@ -1,58 +1,38 @@
 # App Module
 
-## Purpose
-FastAPI application for collecting cryptocurrency price data (Binance API) and news data (RSS feeds), storing all data in MongoDB.
-
-## Stack
-- **Framework**: FastAPI
-- **Package Manager**: uv
-- **Database**: MongoDB
-- **HTTP Client**: httpx (async)
-- **Configuration**: pydantic-settings
-- **Logging**: aiologger
-- **Containerization**: Docker + Docker Compose
+FastAPI сервис, который забирает свечи Binance и новости Crypto.news и складывает их в MongoDB (`binance_data`, `news_data`, `requests_log`).
 
 ## Structure
 ```
 app/
-├── .env                    # Environment variables (create from .env.example)
-├── .env.example
+├── app/main.py                  # FastAPI app + routers
+├── app/api/{binance.py, news.py}
+├── app/service/{binance_service.py, news_service.py}
+├── app/core/{settings.py, logging.py}
+├── app/database.py              # Подключение MongoDB
 ├── Dockerfile
 ├── docker-compose.yml
-├── pyproject.toml
-├── main.py
-└── src/
-    ├── core/
-    │   ├── settings.py    # Pydantic settings
-    │   └── logging.py     # Logger setup
-    ├── database.py        # MongoDB connection
-    └── services/
-        ├── binance_service.py  # Binance API integration
-        └── news_service.py     # RSS feed parsing
-```
-
-## Start Commands
-
-### Using Docker Compose (recommended)
-```bash
-cd app
-cp .env.example .env
-# Edit .env if needed
-docker-compose up -d
-```
-
-### Local development
-```bash
-cd app
-cp .env.example .env
-# Edit .env if needed
-uv pip install -e .
-uvicorn main:app --reload
+└── pyproject.toml
 ```
 
 ## Endpoints
-- `GET /` - Root endpoint
-- `GET /health` - Health check
-- `GET /api/fetch-klines?symbol=BTCUSDT&interval=1h&limit=100` - Fetch candlestick data
-- `GET /api/fetch-news?source=cryptopanic&limit=50` - Fetch news articles
+- `GET /` — приветственное сообщение
+- `GET /health` — пинг MongoDB
+- `GET /api/binance/fetch-klines` — сбор свечей (параметры: `symbol`, `interval`, `limit`)
+- `GET /api/news/fetch-news` — сбор новостей (параметры: `source`, `limit`)
 
+## Run
+Using Docker Compose (рекомендуется):
+```
+cd app
+cp .env.example .env
+docker-compose --env-file .env up -d
+```
+
+Local dev:
+```
+cd app
+cp .env.example .env
+uv sync
+uv run uvicorn app.main:app --reload
+```
