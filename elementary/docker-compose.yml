@@ -1,0 +1,17 @@
+version: '3.8'
+
+services:
+  elementary-report:
+    image: nginx:alpine
+    container_name: elementary-report
+    ports:
+      - "8081:80"
+    volumes:
+      - ../dbt_project/edr_target:/usr/share/nginx/html:ro
+    restart: unless-stopped
+    networks:
+      - itmo-network
+
+networks:
+  itmo-network:
+    external: true

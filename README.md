@@ -55,6 +55,9 @@ itmo-md-2025/
 │   ├── profiles.yml
 │   ├── packages.yml            # Elementary
 │   └── requirements.txt
+├── elementary/                  # Elementary report server
+│   ├── docker-compose.yml      # Nginx для раздачи отчётов
+│   └── README.md
 ├── docker-compose.yaml          # главный compose
 └── docs/                        # материалы курса
 ```
@@ -76,6 +79,7 @@ docker-compose -f docker-compose.yaml up -d
 - Airflow: http://localhost:8080 (логин/пароль: airflow/airflow)
 - PostgreSQL: порт 5433, БД `analytics`, пользователь/пароль `analytics`
 - MongoDB: порт 27017, БД `crypto_data`
+- Elementary Report: http://localhost:8081/elementary_report.html
 
 ## Development
 - Установить зависимости app: `cd app && uv sync`

@@ -5,3 +5,4 @@ include:
     env_file: "dwh/.env"
   - path: "airflow/docker-compose.yml"
     env_file: "airflow/.env"
+  - path: "elementary/docker-compose.yml"
