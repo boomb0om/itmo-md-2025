@@ -118,9 +118,30 @@ pip install dbt-core==1.8.7 dbt-postgres==1.8.2 elementary-data[postgres]==0.16.
 
 **Важно**: Версии совместимы с PostgreSQL 13 и не имеют конфликтов protobuf.
 
-### 2. Настройка profiles.yml
+### 2. Настройка окружения
 
-Создать файл `~/.dbt/profiles.yml`:
+Проект использует `profiles.yml` из директории проекта с переменными окружения:
+
+```bash
+# Скопировать .env.example
+cp .env.example .env
+
+# Отредактировать .env с вашими параметрами подключения
+nano .env
+```
+
+Пример `.env`:
+```bash
+POSTGRES_HOST=localhost
+POSTGRES_PORT=5433
+POSTGRES_USER=analytics
+POSTGRES_PASSWORD=analytics
+POSTGRES_DB=analytics
+```
+
+Профиль `profiles.yml` уже настроен и использует эти переменные через `env_var()`.
+
+**Альтернатива**: Создать файл `~/.dbt/profiles.yml`:
 
 ```yaml
 crypto_analytics:
@@ -144,7 +165,12 @@ crypto_analytics:
 
 ```bash
 cd dbt_project
-dbt deps
+
+# Загрузить переменные окружения
+export $(cat .env | xargs)
+
+# Установить пакеты
+dbt deps --profiles-dir .
 ```
 
 Это установит пакет `elementary-data/elementary` для мониторинга качества данных.
@@ -152,7 +178,11 @@ dbt deps
 ### 4. Проверка подключения
 
 ```bash
-dbt debug
+# Загрузить переменные окружения (если ещё не загружены)
+export $(cat .env | xargs)
+
+# Проверить подключение
+dbt debug --profiles-dir .
 ```
 
 Должно показать "All checks passed!" ✅
@@ -160,16 +190,19 @@ dbt debug
 ### 5. Запуск моделей
 
 ```bash
+# Загрузить переменные окружения
+export $(cat .env | xargs)
+
 # Запустить все модели (STG → ODS → DM)
-dbt run
+dbt run --profiles-dir .
 
 # Запустить только конкретный слой
-dbt run --select tag:staging
-dbt run --select tag:ods
-dbt run --select tag:datamart
+dbt run --select tag:staging --profiles-dir .
+dbt run --select tag:ods --profiles-dir .
+dbt run --select tag:datamart --profiles-dir .
 
 # Запустить конкретную модель
-dbt run --select dm_crypto_market_overview
+dbt run --select dm_crypto_market_overview --profiles-dir .
 ```
 
 **Результат**: Создаются таблицы в схемах `stg`, `ods`, `dm`.
@@ -177,26 +210,44 @@ dbt run --select dm_crypto_market_overview
 ### 6. Запуск тестов
 
 ```bash
-# Все тесты (47 штук)
-dbt test
+# Загрузить переменные окружения
+export $(cat .env | xargs)
+
+# Все тесты (47+ dbt-core + Elementary)
+dbt test --profiles-dir .
 
 # Тесты конкретного слоя
-dbt test --select tag:staging
+dbt test --select tag:staging --profiles-dir .
 
 # Тесты конкретной модели
-dbt test --select stg_binance_klines
+dbt test --select stg_binance_klines --profiles-dir .
 ```
 
-**Ожидаемый результат**: `Done. PASS=47 WARN=0 ERROR=0 SKIP=0 TOTAL=47` ✅
+**Ожидаемый результат**: `Done. PASS=57 WARN=0 ERROR=0 SKIP=0 TOTAL=57` ✅ (47 dbt-core + 10 Elementary)
 
-### 7. Генерация документации
+### 7. Генерация Elementary отчёта
 
 ```bash
+# Загрузить переменные окружения
+export $(cat .env | xargs)
+
+# Сгенерировать HTML отчёт
+edr report --profiles-dir .
+
+# Отчёт будет создан в edr_target/elementary_report.html
+```
+
+### 8. Генерация dbt документации
+
+```bash
+# Загрузить переменные окружения
+export $(cat .env | xargs)
+
 # Сгенерировать документацию
-dbt docs generate
+dbt docs generate --profiles-dir .
 
 # Запустить веб-сервер с документацией
-dbt docs serve --port 8001
+dbt docs serve --port 8001 --profiles-dir .
 ```
 
 Откройте в браузере `http://localhost:8001` для просмотра:
