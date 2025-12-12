@@ -1,75 +1,16 @@
-# Данные для сдачи проекта
+# Данные для сдачи
 
-Заполните данные для сдачи проекта в Google Sheets.
-
-## URLs и доступы
+## Production URLs
 
 ```
-Swagger URL: http://213.171.30.141:8000/docs
-MongoDB URL: mongodb://root:root@213.171.30.141:27017/crypto_data
-PostgreSQL URL: postgresql://analytics:analytics@213.171.30.141:5433/analytics
-Airflow:
-   URL: http://213.171.30.141:8080
-   User: airflow
-   Password: airflow
-Elementary edr report URL: http://213.171.30.141:8081/elementary_report.html
-Презентация URL: <ссылка-на-презентацию>
+Swagger: http://213.171.30.141:8000/docs
+MongoDB: mongodb://root:root@213.171.30.141:27017/crypto_data
+PostgreSQL: postgresql://analytics:analytics@213.171.30.141:5433/analytics
+Airflow: http://213.171.30.141:8080 (airflow / airflow)
+Elementary: http://213.171.30.141:8081/elementary_report.html
+GitHub: https://github.com/boomb0om/itmo-md-2025
 ```
 
-## Как получить данные
+## Презентация
 
-### Swagger URL
-```bash
-echo "http://$(hostname -I | awk '{print $1}'):8000/docs"
-```
-
-### MongoDB URL
-Из файла `app/.env`:
-- MONGO_INITDB_ROOT_USERNAME
-- MONGO_INITDB_ROOT_PASSWORD
-- MONGO_INITDB_DATABASE
-
-Формат: `mongodb://<username>:<password>@<server-ip>:27017/<database>`
-
-### PostgreSQL URL
-Из файла `dwh/.env`:
-- POSTGRES_USER
-- POSTGRES_PASSWORD
-- POSTGRES_DB
-
-Формат: `postgresql://<username>:<password>@<server-ip>:5433/<database>`
-
-### Airflow
-- URL: `http://<server-ip>:8080`
-- По умолчанию User/Password: `airflow/airflow`
-
-### Elementary Report
-- URL: `http://<server-ip>:8081/elementary_report.html`
-
-## Проверка доступности
-
-```bash
-# Проверить все порты
-netstat -tuln | grep -E ':(8000|8080|8081|5433|27017)'
-
-# Или через lsof
-lsof -i :8000
-lsof -i :8080
-lsof -i :8081
-lsof -i :5433
-lsof -i :27017
-```
-
-## Открытие портов (если необходимо)
-
-```bash
-# Для Ubuntu/Debian с ufw
-sudo ufw allow 8000/tcp  # App Swagger
-sudo ufw allow 8080/tcp  # Airflow
-sudo ufw allow 8081/tcp  # Elementary Report
-sudo ufw allow 5433/tcp  # PostgreSQL
-sudo ufw allow 27017/tcp # MongoDB
-
-# Проверить статус
-sudo ufw status
-```
+URL: <добавить ссылку после создания>
