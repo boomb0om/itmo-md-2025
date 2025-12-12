@@ -3,6 +3,9 @@ version: 2
 models:
   - name: stg_binance_klines
     description: "Staging table for Binance klines (OHLCV candles) - unpacked from JSONB"
+    tests:
+      - elementary.volume_anomalies
+      - elementary.all_columns_anomalies
     columns:
       - name: binance_id
         description: "Unique identifier from MongoDB"
@@ -36,6 +39,7 @@ models:
         description: "Opening price"
         tests:
           - not_null
+          - elementary.column_anomalies
 
       - name: high_price
         description: "Highest price during the interval"
@@ -56,6 +60,7 @@ models:
         description: "Trading volume"
         tests:
           - not_null
+          - elementary.column_anomalies
 
       - name: process_at
         description: "Timestamp when loaded to PostgreSQL"
@@ -64,6 +69,11 @@ models:
 
   - name: stg_news_articles
     description: "Staging table for crypto news articles - unpacked from JSONB"
+    tests:
+      - elementary.volume_anomalies
+      - elementary.dimension_anomalies:
+          dimensions:
+            - source
     columns:
       - name: news_id
         description: "Unique identifier from MongoDB"
