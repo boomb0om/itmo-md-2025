@@ -1,7 +1,7 @@
 {{
     config(
         materialized='incremental',
-        incremental_strategy='merge',
+        incremental_strategy='delete+insert',
         unique_key='news_id'
     )
 }}

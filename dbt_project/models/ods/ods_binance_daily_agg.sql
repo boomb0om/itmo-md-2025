@@ -1,38 +1,23 @@
 {{
     config(
         materialized='incremental',
-        incremental_strategy='merge',
+        incremental_strategy='delete+insert',
         unique_key=['symbol', 'trade_date']
     )
 }}
 
-with daily_klines as (
+with daily_aggregates as (
     select
         symbol,
         date(open_time) as trade_date,
-
-        -- Daily OHLC using window functions
-        first_value(open_price) over (
-            partition by symbol, date(open_time)
-            order by open_time
-            rows between unbounded preceding and unbounded following
-        ) as daily_open,
-
         max(high_price) as daily_high,
         min(low_price) as daily_low,
-
-        last_value(close_price) over (
-            partition by symbol, date(open_time)
-            order by open_time
-            rows between unbounded preceding and unbounded following
-        ) as daily_close,
-
         sum(volume) as daily_volume,
         sum(quote_asset_volume) as daily_quote_volume,
         sum(number_of_trades) as daily_trades_count,
-
         count(*) as candles_count,
-        current_timestamp as processed_dttm
+        min(open_time) as first_candle_time,
+        max(open_time) as last_candle_time
 
     from {{ ref('stg_binance_klines') }}
 
@@ -44,6 +29,21 @@ with daily_klines as (
     {% endif %}
 
     group by symbol, date(open_time)
+),
+
+daily_klines as (
+    select
+        agg.*,
+        first_kline.open_price as daily_open,
+        last_kline.close_price as daily_close,
+        current_timestamp as processed_dttm
+    from daily_aggregates agg
+    left join {{ ref('stg_binance_klines') }} first_kline
+        on agg.symbol = first_kline.symbol
+        and agg.first_candle_time = first_kline.open_time
+    left join {{ ref('stg_binance_klines') }} last_kline
+        on agg.symbol = last_kline.symbol
+        and agg.last_candle_time = last_kline.open_time
 )
 
 select distinct
