@@ -1,0 +1,123 @@
+version: 2
+
+models:
+  - name: stg_binance_klines
+    description: "Staging table for Binance klines (OHLCV candles) - unpacked from JSONB"
+    tests:
+      - elementary.volume_anomalies:
+          timestamp_column: "open_time"
+      - elementary.freshness_anomalies:
+          timestamp_column: "process_at"
+    columns:
+      - name: binance_id
+        description: "Unique identifier from MongoDB"
+        tests:
+          - not_null
+          - unique
+
+      - name: symbol
+        description: "Trading pair symbol (e.g., BTCUSDT)"
+        tests:
+          - not_null
+
+      - name: interval
+        description: "Candle interval (e.g., 1h, 4h, 1d)"
+        tests:
+          - not_null
+          - accepted_values:
+              values: ['1m', '5m', '15m', '1h', '4h', '1d']
+
+      - name: open_time
+        description: "Candle open timestamp"
+        tests:
+          - not_null
+
+      - name: close_time
+        description: "Candle close timestamp"
+        tests:
+          - not_null
+
+      - name: open_price
+        description: "Opening price"
+        tests:
+          - not_null
+          - elementary.column_anomalies:
+              timestamp_column: "open_time"
+
+      - name: high_price
+        description: "Highest price during the interval"
+        tests:
+          - not_null
+          - elementary.column_anomalies:
+              timestamp_column: "open_time"
+
+      - name: low_price
+        description: "Lowest price during the interval"
+        tests:
+          - not_null
+          - elementary.column_anomalies:
+              timestamp_column: "open_time"
+
+      - name: close_price
+        description: "Closing price"
+        tests:
+          - not_null
+          - elementary.column_anomalies:
+              timestamp_column: "open_time"
+
+      - name: volume
+        description: "Trading volume"
+        tests:
+          - not_null
+          - elementary.column_anomalies:
+              timestamp_column: "open_time"
+
+      - name: process_at
+        description: "Timestamp when loaded to PostgreSQL"
+        tests:
+          - not_null
+
+  - name: stg_news_articles
+    description: "Staging table for crypto news articles - unpacked from JSONB"
+    tests:
+      - elementary.volume_anomalies:
+          timestamp_column: "pub_date"
+      - elementary.event_freshness_anomalies:
+          timestamp_column: "pub_date"
+          update_timestamp_column: "process_at"
+    columns:
+      - name: news_id
+        description: "Unique identifier from MongoDB"
+        tests:
+          - not_null
+          - unique
+
+      - name: guid
+        description: "Article GUID from RSS feed"
+        tests:
+          - not_null
+
+      - name: source
+        description: "News source name"
+        tests:
+          - not_null
+
+      - name: title
+        description: "Article title"
+        tests:
+          - not_null
+
+      - name: link
+        description: "Article URL"
+        tests:
+          - not_null
+
+      - name: pub_date
+        description: "Publication date"
+        tests:
+          - not_null
+
+      - name: process_at
+        description: "Timestamp when loaded to PostgreSQL"
+        tests:
+          - not_null

@@ -1,0 +1,58 @@
+version: 2
+
+models:
+  - name: dm_crypto_market_overview
+    description: "Market overview with price trends, moving averages, and volatility metrics"
+    columns:
+      - name: symbol
+        description: "Trading pair symbol"
+        tests:
+          - not_null
+          - unique
+
+      - name: current_price
+        description: "Latest closing price"
+        tests:
+          - not_null
+
+      - name: trend_indicator
+        description: "Market trend based on moving averages"
+        tests:
+          - not_null
+          - accepted_values:
+              values: ['uptrend', 'downtrend', 'sideways']
+
+      - name: ma_7d
+        description: "7-day moving average"
+
+      - name: ma_30d
+        description: "30-day moving average"
+
+      - name: volatility_7d
+        description: "7-day price volatility (standard deviation)"
+
+  - name: dm_news_impact_analysis
+    description: "Analysis of news sentiment impact on cryptocurrency prices"
+    columns:
+      - name: analysis_date
+        description: "Date of analysis"
+        tests:
+          - not_null
+
+      - name: symbol
+        description: "Trading pair symbol"
+
+      - name: news_count
+        description: "Total number of news articles"
+
+      - name: sentiment_score
+        description: "Sentiment score (positive - negative)"
+
+      - name: sentiment_price_correlation
+        description: "Correlation between sentiment and price movement"
+        tests:
+          - accepted_values:
+              values: ['positive_correlation', 'negative_correlation', 'no_correlation']
+
+      - name: price_change_pct
+        description: "Daily price change percentage"
