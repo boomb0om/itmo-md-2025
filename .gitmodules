@@ -1,3 +1,0 @@
-[submodule "course/dbt-practice"]
-	path = course/dbt-practice
-	url = https://github.com/vktrbr/dbt-practice
