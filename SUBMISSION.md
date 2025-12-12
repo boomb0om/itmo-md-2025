@@ -1,18 +1,18 @@
-# Шаблон для сдачи проекта
+# Данные для сдачи проекта
 
 Заполните данные для сдачи проекта в Google Sheets.
 
-## Формат сдачи
+## URLs и доступы
 
 ```
-Swagger URL: http://<server-ip>:8000/docs
-MongoDB URL: mongodb://root:root@<server-ip>:27017/crypto_data
-PostgreSQL URL: postgresql://analytics:analytics@<server-ip>:5433/analytics
+Swagger URL: http://213.171.30.141:8000/docs
+MongoDB URL: mongodb://root:root@213.171.30.141:27017/crypto_data
+PostgreSQL URL: postgresql://analytics:analytics@213.171.30.141:5433/analytics
 Airflow:
-   URL: http://<server-ip>:8080
+   URL: http://213.171.30.141:8080
    User: airflow
    Password: airflow
-Elementary edr report URL: http://<server-ip>:8081/elementary_report.html
+Elementary edr report URL: http://213.171.30.141:8081/elementary_report.html
 Презентация URL: <ссылка-на-презентацию>
 ```
 
