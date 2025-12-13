@@ -128,6 +128,10 @@ services:
       - |
         mkdir -p /sources/logs /sources/dags /sources/plugins
         chown -R "${AIRFLOW_UID:-50000}:0" /sources/{logs,dags,plugins}
+        mkdir -p /opt/airflow/dbt_project/{logs,target,edr_target,dbt_packages}
+        chown -R "${AIRFLOW_UID:-50000}:0" /opt/airflow/dbt_project/{logs,target,edr_target,dbt_packages}
+        mkdir -p /tmp/dbt_packages
+        chown -R "${AIRFLOW_UID:-50000}:0" /tmp/dbt_packages
         exec /entrypoint airflow version
     environment:
       <<: *airflow-common-env
@@ -136,5 +140,10 @@ services:
       _AIRFLOW_WWW_USER_USERNAME: ${_AIRFLOW_WWW_USER_USERNAME:-airflow}
       _AIRFLOW_WWW_USER_PASSWORD: ${_AIRFLOW_WWW_USER_PASSWORD:-airflow}
     user: "0:0"
-    volumes:
-      - ${AIRFLOW_PROJ_DIR:-.}:/sources
+  volumes:
+    - ${AIRFLOW_PROJ_DIR:-.}:/sources
+
+networks:
+  default:
+    name: itmo-network
+    external: true

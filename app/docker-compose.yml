@@ -1,5 +1,6 @@
 services:
   crypto-app:
+    container_name: crypto-app
     build:
       context: .
       dockerfile: Dockerfile
@@ -9,9 +10,12 @@ services:
     ports:
       - "${APP_PORT:-8000}:8000"
     depends_on:
-      - crypto-app-mongodb
+      - mongodb
+    networks:
+      - itmo-network
 
-  crypto-app-mongodb:
+  mongodb:
+    container_name: mongodb
     image: mongo:7
     environment:
       MONGO_INITDB_ROOT_USERNAME: "${MONGO_USERNAME:-admin}"
@@ -27,3 +31,10 @@ services:
       timeout: 5s
       retries: 5
     restart: always
+    networks:
+      - itmo-network
+
+networks:
+  itmo-network:
+    name: itmo-network
+    driver: bridge

@@ -129,9 +129,12 @@ chmod -R 777 dbt_project/edr_target
 
 ## Запуск проекта
 
-### 1. Запустить все сервисы
+### 1. Создать общую сеть и запустить сервисы
 
 ```bash
+# Создать общую сеть itmo-network
+docker network create itmo-network
+
 # Запуск всего стека через главный compose
 docker compose up -d
 
@@ -140,7 +143,7 @@ docker ps
 ```
 
 Должны быть запущены:
-- `app-1` - FastAPI приложение
+- `crypto-app` - FastAPI приложение
 - `mongodb` - MongoDB
 - `airflow-scheduler-1`, `airflow-webserver-1`, `airflow-triggerer-1` - Airflow
 - `postgres-analytics` - PostgreSQL DWH
@@ -153,7 +156,8 @@ docker ps
 docker compose logs
 
 # Логи конкретного сервиса
-docker logs app-1
+docker logs crypto-app
+docker logs mongodb
 docker logs airflow-scheduler-1
 docker logs postgres-analytics
 ```
