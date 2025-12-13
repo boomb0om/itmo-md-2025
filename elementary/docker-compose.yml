@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   elementary-report:
     image: nginx:alpine
@@ -14,4 +12,5 @@ services:
 
 networks:
   itmo-network:
+    name: itmo-network
     external: true

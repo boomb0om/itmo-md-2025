@@ -27,7 +27,7 @@ newgrp docker
 
 # Проверить
 docker --version
-docker-compose --version
+docker compose version
 ```
 
 ### 2. Открыть порты
@@ -129,18 +129,21 @@ chmod -R 777 dbt_project/edr_target
 
 ## Запуск проекта
 
-### 1. Запустить все сервисы
+### 1. Создать общую сеть и запустить сервисы
 
 ```bash
-# Запуск всего стека через главный docker-compose
-docker-compose up -d
+# Создать общую сеть itmo-network
+docker network create itmo-network
+
+# Запуск всего стека через главный compose
+docker compose up -d
 
 # Проверить что все контейнеры запустились
 docker ps
 ```
 
 Должны быть запущены:
-- `app-1` - FastAPI приложение
+- `crypto-app` - FastAPI приложение
 - `mongodb` - MongoDB
 - `airflow-scheduler-1`, `airflow-webserver-1`, `airflow-triggerer-1` - Airflow
 - `postgres-analytics` - PostgreSQL DWH
@@ -150,10 +153,11 @@ docker ps
 
 ```bash
 # Логи всех сервисов
-docker-compose logs
+docker compose logs
 
 # Логи конкретного сервиса
-docker logs app-1
+docker logs crypto-app
+docker logs mongodb
 docker logs airflow-scheduler-1
 docker logs postgres-analytics
 ```
@@ -224,14 +228,14 @@ git pull
 ./fix_permissions.sh
 
 # Перезапустить сервисы (если были изменения)
-docker-compose down
-docker-compose up -d
+docker compose down
+docker compose up -d
 
 # Если были изменения в Airflow requirements.txt
 cd airflow
-docker-compose down
-docker-compose build
-docker-compose up -d
+docker compose down
+docker compose build
+docker compose up -d
 ```
 
 ## Troubleshooting
@@ -256,7 +260,7 @@ docker logs postgres-analytics
 
 **Решение**:
 ```bash
-docker-compose restart postgres-analytics
+docker compose restart postgres-analytics
 ```
 
 ### Проблема: DBT не может подключиться к PostgreSQL
@@ -304,13 +308,13 @@ docker logs elementary-report
 **Очистить Docker**:
 ```bash
 # Остановить контейнеры
-docker-compose down
+docker compose down
 
 # Очистить неиспользуемые образы и volumes
 docker system prune -a --volumes
 
 # Запустить заново
-docker-compose up -d
+docker compose up -d
 ```
 
 **Очистить dbt артефакты**:
@@ -332,10 +336,10 @@ docker ps -a
 docker stats
 
 # Логи последние 100 строк
-docker-compose logs --tail=100
+docker compose logs --tail=100
 
 # Логи в реальном времени
-docker-compose logs -f
+docker compose logs -f
 ```
 
 ### Проверка размера данных
@@ -364,7 +368,6 @@ df -h
 
 # Размер директорий проекта
 du -sh ~/itmo-md-2025/*
-du -sh ~/itmo-md-2025/airflow/volumes/
 ```
 
 ## Бэкапы
@@ -402,16 +405,16 @@ docker exec mongodb mongorestore --uri="mongodb://admin:admin@localhost:27017" -
 
 ```bash
 # Перезапустить все сервисы
-docker-compose restart
+docker compose restart
 
 # Остановить все
-docker-compose down
+docker compose down
 
 # Остановить и удалить volumes
-docker-compose down -v
+docker compose down -v
 
 # Пересобрать образы
-docker-compose build --no-cache
+docker compose build --no-cache
 
 # Проверить сеть
 docker network ls
@@ -443,7 +446,7 @@ cat target/compiled/crypto_analytics/models/dm/dm_crypto_market_overview.sql
 ```bash
 # Перезапустить Airflow
 cd airflow
-docker-compose restart
+docker compose restart
 
 # Просмотреть логи конкретного DAG run
 docker exec airflow-scheduler-1 airflow dags test dbt_transformation
@@ -468,7 +471,7 @@ docker exec airflow-scheduler-1 airflow db clean --clean-before-timestamp "2025-
 ```bash
 # Полная проверка
 docker ps  # Все контейнеры UP
-docker-compose logs --tail=50  # Нет критических ошибок
+docker compose logs --tail=50  # Нет критических ошибок
 
 # Проверка данных в PostgreSQL
 docker exec -it postgres-analytics psql -U analytics -d analytics -c "

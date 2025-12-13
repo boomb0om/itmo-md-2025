@@ -16,3 +16,8 @@ services:
       timeout: 5s
       retries: 5
     restart: always
+
+networks:
+  default:
+    name: itmo-network
+    external: true

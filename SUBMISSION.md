@@ -4,7 +4,7 @@
 
 ```
 Swagger: http://213.171.30.141:8000/docs
-MongoDB: mongodb://root:root@213.171.30.141:27017/crypto_data
+MongoDB: mongodb://admin:admin@213.171.30.141:27017/crypto_data?authSource=admin
 PostgreSQL: postgresql://analytics:analytics@213.171.30.141:5433/analytics
 Airflow: http://213.171.30.141:8080 (airflow / airflow)
 Elementary: http://213.171.30.141:8081/elementary_report.html
