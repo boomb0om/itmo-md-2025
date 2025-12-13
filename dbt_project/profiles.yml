@@ -6,10 +6,10 @@ crypto_analytics:
   outputs:
     dev:
       type: postgres
-      host: "{{ env_var('POSTGRES_HOST', 'localhost') }}"
+      host: "{{ env_var('POSTGRES_HOST', 'postgres-analytics') }}"
       user: "{{ env_var('POSTGRES_USER', 'analytics') }}"
       password: "{{ env_var('POSTGRES_PASSWORD', 'analytics') }}"
-      port: "{{ env_var('POSTGRES_PORT', '5433') | int }}"
+      port: "{{ env_var('POSTGRES_PORT', '5432') | int }}"
       dbname: "{{ env_var('POSTGRES_DB', 'analytics') }}"
       schema: public
       threads: 4
@@ -20,10 +20,10 @@ elementary:
   outputs:
     dev:
       type: postgres
-      host: "{{ env_var('POSTGRES_HOST', 'localhost') }}"
+      host: "{{ env_var('POSTGRES_HOST', 'postgres-analytics') }}"
       user: "{{ env_var('POSTGRES_USER', 'analytics') }}"
       password: "{{ env_var('POSTGRES_PASSWORD', 'analytics') }}"
-      port: "{{ env_var('POSTGRES_PORT', '5433') | int }}"
+      port: "{{ env_var('POSTGRES_PORT', '5432') | int }}"
       dbname: "{{ env_var('POSTGRES_DB', 'analytics') }}"
       schema: elementary
       threads: 4
