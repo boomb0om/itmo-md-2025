@@ -41,7 +41,7 @@ env_vars = {
 # Task 1: Install dbt dependencies (Elementary, etc.)
 dbt_deps = BashOperator(
     task_id='dbt_deps',
-    bash_command=f'cd {dbt_project_dir} && dbt deps --profiles-dir {dbt_profiles_dir}',
+    bash_command=f'cd {dbt_project_dir} && /home/airflow/.local/bin/dbt deps --profiles-dir {dbt_profiles_dir}',
     env=env_vars,
     dag=dag,
 )
@@ -49,7 +49,7 @@ dbt_deps = BashOperator(
 # Task 2: Run dbt models with staging tag
 dbt_run_stg = BashOperator(
     task_id='dbt_run_staging',
-    bash_command=f'cd {dbt_project_dir} && dbt run --select tag:staging --profiles-dir {dbt_profiles_dir}',
+    bash_command=f'cd {dbt_project_dir} && /home/airflow/.local/bin/dbt run --select tag:staging --profiles-dir {dbt_profiles_dir}',
     env=env_vars,
     dag=dag,
 )
@@ -57,7 +57,7 @@ dbt_run_stg = BashOperator(
 # Task 3: Test staging models
 dbt_test_stg = BashOperator(
     task_id='dbt_test_staging',
-    bash_command=f'cd {dbt_project_dir} && dbt test --select tag:staging --profiles-dir {dbt_profiles_dir}',
+    bash_command=f'cd {dbt_project_dir} && /home/airflow/.local/bin/dbt test --select tag:staging --profiles-dir {dbt_profiles_dir}',
     env=env_vars,
     dag=dag,
 )
@@ -65,7 +65,7 @@ dbt_test_stg = BashOperator(
 # Task 4: Run dbt models with ods tag
 dbt_run_ods = BashOperator(
     task_id='dbt_run_ods',
-    bash_command=f'cd {dbt_project_dir} && dbt run --select tag:ods --profiles-dir {dbt_profiles_dir}',
+    bash_command=f'cd {dbt_project_dir} && /home/airflow/.local/bin/dbt run --select tag:ods --profiles-dir {dbt_profiles_dir}',
     env=env_vars,
     dag=dag,
 )
@@ -73,7 +73,7 @@ dbt_run_ods = BashOperator(
 # Task 5: Test ODS models
 dbt_test_ods = BashOperator(
     task_id='dbt_test_ods',
-    bash_command=f'cd {dbt_project_dir} && dbt test --select tag:ods --profiles-dir {dbt_profiles_dir}',
+    bash_command=f'cd {dbt_project_dir} && /home/airflow/.local/bin/dbt test --select tag:ods --profiles-dir {dbt_profiles_dir}',
     env=env_vars,
     dag=dag,
 )
@@ -81,7 +81,7 @@ dbt_test_ods = BashOperator(
 # Task 6: Run dbt models with datamart tag
 dbt_run_dm = BashOperator(
     task_id='dbt_run_datamart',
-    bash_command=f'cd {dbt_project_dir} && dbt run --select tag:datamart --profiles-dir {dbt_profiles_dir}',
+    bash_command=f'cd {dbt_project_dir} && /home/airflow/.local/bin/dbt run --select tag:datamart --profiles-dir {dbt_profiles_dir}',
     env=env_vars,
     dag=dag,
 )
@@ -89,7 +89,7 @@ dbt_run_dm = BashOperator(
 # Task 7: Test all models (including DM)
 dbt_test_all = BashOperator(
     task_id='dbt_test_all',
-    bash_command=f'cd {dbt_project_dir} && dbt test --profiles-dir {dbt_profiles_dir}',
+    bash_command=f'cd {dbt_project_dir} && /home/airflow/.local/bin/dbt test --profiles-dir {dbt_profiles_dir}',
     env=env_vars,
     dag=dag,
 )
@@ -97,7 +97,7 @@ dbt_test_all = BashOperator(
 # Task 8: Generate Elementary report
 elementary_report = BashOperator(
     task_id='elementary_generate_report',
-    bash_command=f'cd {dbt_project_dir} && edr report --profiles-dir {dbt_profiles_dir}',
+    bash_command=f'cd {dbt_project_dir} && /home/airflow/.local/bin/edr report --profiles-dir {dbt_profiles_dir}',
     env=env_vars,
     dag=dag,
 )
