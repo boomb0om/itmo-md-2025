@@ -94,8 +94,9 @@
 
 #### STG (Staging) - Распаковка JSONB
 - `stg_binance_klines` - свечи Binance (symbol, interval, OHLCV, timestamps)
+  - **Стратегия**: incremental (delete+insert)
 - `stg_news_articles` - новости (title, description, pub_date, categories)
-- **Стратегия**: incremental (delete+insert)
+  - **Стратегия**: incremental (append)
 - **Особенности**: распаковка JSONB, инкрементальная загрузка
 
 #### ODS (Operational Data Store) - Агрегация

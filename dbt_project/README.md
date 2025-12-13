@@ -132,8 +132,8 @@ nano .env
 
 Пример `.env`:
 ```bash
-POSTGRES_HOST=localhost
-POSTGRES_PORT=5433
+POSTGRES_HOST=postgres-analytics
+POSTGRES_PORT=5432
 POSTGRES_USER=analytics
 POSTGRES_PASSWORD=analytics
 POSTGRES_DB=analytics
