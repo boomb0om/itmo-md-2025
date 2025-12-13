@@ -201,7 +201,7 @@ nano dbt_project/.env
 
 ```bash
 # Запуск всего стека
-docker-compose up -d
+docker compose up -d
 
 # Проверка статуса
 docker ps
