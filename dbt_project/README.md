@@ -288,15 +288,32 @@ config(
 **Почему используется**:
 - Совместимо с PostgreSQL 13 (MERGE появился только в PostgreSQL 15)
 - Гарантирует отсутствие дубликатов
-- Подходит для данных, которые не изменяются после вставки
+- Подходит для данных, которые могут обновляться
 
 **Применяется в**:
 - `stg_binance_klines` (unique_key: binance_id)
-- `stg_news_articles` (unique_key: news_id)
 - `ods_binance_daily_agg` (unique_key: [symbol, trade_date])
 - `ods_news_enriched` (unique_key: news_id)
 
-### 2. table (DM слой)
+### 2. append (STG слой)
+```sql
+config(
+    materialized='incremental',
+    incremental_strategy='append'
+)
+```
+
+**Описание**: Просто добавляет новые записи в конец таблицы без проверки дубликатов.
+
+**Почему используется**:
+- Самая быстрая стратегия (нет проверок на дубликаты)
+- Подходит для append-only данных (новости)
+- Дедупликация происходит на ODS слое
+
+**Применяется в**:
+- `stg_news_articles` - новости не изменяются, только добавляются новые
+
+### 3. table (DM слой)
 ```sql
 config(
     materialized='table'
