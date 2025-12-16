@@ -28,5 +28,16 @@ jobs:
             cd ~/itmo-md-2025
             git fetch origin main
             git reset --hard origin/main
+
+            # Fix permissions for dbt_project
+            sudo ./fix_permissions.sh
+
+            # Stop and restart services
             docker compose down
             docker compose up -d --build
+
+            # Wait for services to be healthy
+            sleep 60
+
+            # Install dbt packages
+            docker compose exec -T airflow-scheduler bash -c "cd /opt/airflow/dbt_project && dbt deps --profiles-dir ."

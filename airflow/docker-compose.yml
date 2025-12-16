@@ -128,10 +128,12 @@ services:
       - |
         mkdir -p /sources/logs /sources/dags /sources/plugins
         chown -R "${AIRFLOW_UID:-50000}:0" /sources/{logs,dags,plugins}
+
+        # Create and fix permissions for dbt_project directories
         mkdir -p /opt/airflow/dbt_project/{logs,target,edr_target,dbt_packages}
-        chown -R "${AIRFLOW_UID:-50000}:0" /opt/airflow/dbt_project/{logs,target,edr_target,dbt_packages}
-        mkdir -p /tmp/dbt_packages
-        chown -R "${AIRFLOW_UID:-50000}:0" /tmp/dbt_packages
+        chown -R "${AIRFLOW_UID:-50000}:0" /opt/airflow/dbt_project/
+        chmod -R a+w /opt/airflow/dbt_project/
+
         exec /entrypoint airflow version
     environment:
       <<: *airflow-common-env
