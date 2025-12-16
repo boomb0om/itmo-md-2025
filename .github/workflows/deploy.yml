@@ -29,6 +29,10 @@ jobs:
             git fetch origin main
             git reset --hard origin/main
 
+            # Verify configuration before deployment
+            chmod +x verify_setup.sh
+            ./verify_setup.sh || exit 1
+
             # Fix permissions for dbt_project
             sudo ./fix_permissions.sh
 
@@ -36,8 +40,21 @@ jobs:
             docker compose down
             docker compose up -d --build
 
-            # Wait for services to be healthy
-            sleep 60
+            # Wait for services to be healthy (increased timeout)
+            echo "Waiting for services to initialize..."
+            sleep 120
+
+            # Verify services are healthy
+            docker compose ps | grep -q "healthy" || (echo "Services not healthy!" && docker compose ps && exit 1)
 
             # Install dbt packages
-            docker compose exec -T airflow-scheduler bash -c "cd /opt/airflow/dbt_project && dbt deps --profiles-dir ."
+            docker compose exec -T airflow-scheduler bash -c "cd /opt/airflow/dbt_project && dbt deps --profiles-dir ." || exit 1
+
+            # Verify dbt packages installed
+            docker compose exec -T airflow-scheduler ls /opt/airflow/dbt_project/dbt_packages/elementary || (echo "Elementary not installed!" && exit 1)
+
+            # Success message
+            echo "✓ Deployment successful!"
+            echo "✓ All services healthy"
+            echo "✓ dbt packages installed"
+            docker compose ps
