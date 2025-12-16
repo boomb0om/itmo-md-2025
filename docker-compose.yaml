@@ -6,3 +6,4 @@ include:
   - path: "airflow/docker-compose.yml"
     env_file: "airflow/.env"
   - path: "elementary/docker-compose.yml"
+    env_file: "elementary/.env"
