@@ -7,9 +7,13 @@
 Triggers on push to `main` branch and performs:
 
 1. **Pull latest code** - Fetches and resets to origin/main
-2. **Fix permissions** - Runs `fix_permissions.sh` to set correct ownership (UID 50000) for dbt_project
-3. **Restart services** - Stops and rebuilds all Docker containers
-4. **Install dbt packages** - Automatically runs `dbt deps` to install Elementary and dbt_utils
+2. **Verify configuration** - Runs `verify_setup.sh` to check for config conflicts
+3. **Fix permissions** - Runs `fix_permissions.sh` to set correct ownership (UID 50000) for dbt_project
+4. **Restart services** - Stops and rebuilds all Docker containers
+5. **Wait for services** - Waits 120s for all services to become healthy
+6. **Verify health** - Checks that all services report "healthy" status
+7. **Install dbt packages** - Automatically runs `dbt deps` to install Elementary and dbt_utils
+8. **Verify packages** - Confirms Elementary and dbt_utils were installed correctly
 
 #### Required Secrets
 
@@ -39,12 +43,22 @@ If you need to deploy manually without CI/CD:
 ```bash
 cd ~/itmo-md-2025
 git pull
+
+# Verify configuration first
+./verify_setup.sh
+
+# Fix permissions and deploy
 sudo ./fix_permissions.sh
 docker compose down
 docker compose up -d --build
-sleep 60
+sleep 120
+
+# Verify and install packages
+docker compose ps
 docker compose exec airflow-scheduler bash -c "cd /opt/airflow/dbt_project && dbt deps --profiles-dir ."
 ```
+
+**Quick Start**: For first-time setup, follow [QUICK_START.md](../QUICK_START.md)
 
 ## Automatic Permission Fixing
 
