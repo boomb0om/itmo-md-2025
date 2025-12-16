@@ -11,14 +11,11 @@ seed-paths: ["seeds"]
 macro-paths: ["macros"]
 snapshot-paths: ["snapshots"]
 
-target-path: "/tmp/dbt_target"
-log-path: "/tmp/dbt_logs"
-packages-install-path: "/tmp/dbt_packages"
+packages-install-path: "dbt_packages"
 
 clean-targets:
-  - "/tmp/dbt_target"
-  - "/tmp/dbt_logs"
-  - "/tmp/dbt_packages"
+  - "target"
+  - "logs"
 
 models:
   crypto_analytics:
