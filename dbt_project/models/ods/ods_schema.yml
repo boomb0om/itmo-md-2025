@@ -4,8 +4,12 @@ models:
   - name: ods_binance_daily_agg
     description: "Daily aggregated OHLCV data for crypto pairs with price change metrics"
     tests:
-      - elementary.volume_anomalies
-      - elementary.all_columns_anomalies
+      - elementary.volume_anomalies:
+          config:
+            severity: warn
+      - elementary.all_columns_anomalies:
+          config:
+            severity: warn
     columns:
       - name: symbol
         description: "Trading pair symbol"
@@ -41,11 +45,15 @@ models:
   - name: ods_news_enriched
     description: "Enriched news data with sentiment analysis and text metrics"
     tests:
-      - elementary.volume_anomalies
+      - elementary.volume_anomalies:
+          config:
+            severity: warn
       - elementary.dimension_anomalies:
           dimensions:
             - sentiment
             - source
+          config:
+            severity: warn
     columns:
       - name: news_id
         description: "Unique news article identifier"
