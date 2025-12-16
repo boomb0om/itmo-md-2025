@@ -29,7 +29,7 @@ grep "packages-install-path" dbt_project/dbt_project.yml
 
 ```bash
 # Run the permissions fix script
-./fix_permissions.sh
+sudo ./fix_permissions.sh
 
 # Verify permissions
 ls -la dbt_project/ | grep -E "(logs|target|edr|packages)"
@@ -135,7 +135,7 @@ docker compose restart airflow-scheduler
 
 **Fix**:
 ```bash
-./fix_permissions.sh
+sudo ./fix_permissions.sh
 docker compose restart airflow-scheduler
 ```
 
