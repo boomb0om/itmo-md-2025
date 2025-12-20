@@ -98,7 +98,7 @@ dbt_test_all = BashOperator(
 # Memory optimization: reduced days-back and disabled passed test metrics
 elementary_report = BashOperator(
     task_id='elementary_generate_report',
-    bash_command=f'cd {dbt_project_dir} && /home/airflow/.local/bin/edr report --profiles-dir {dbt_profiles_dir} --days-back 3 --disable-passed-test-metrics',
+    bash_command=f'cd {dbt_project_dir} && /home/airflow/.local/bin/edr report --profiles-dir {dbt_profiles_dir} --days-back 3',
     env=env_vars,
     dag=dag,
 )
