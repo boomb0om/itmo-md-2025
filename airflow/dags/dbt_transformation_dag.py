@@ -95,11 +95,17 @@ dbt_test_all = BashOperator(
 )
 
 # Task 8: Generate Elementary report
-# Memory optimization: reduced days-back and disabled passed test metrics
+# Memory optimization to prevent OOM kills:
+# - PYTHONMALLOC='malloc': reduce Python memory overhead
+# - days-back 1: process only last day of data
+# - exclude-elementary-models: exclude Elementary's internal models from report
+elementary_env = env_vars.copy()
+elementary_env['PYTHONMALLOC'] = 'malloc'
+
 elementary_report = BashOperator(
     task_id='elementary_generate_report',
-    bash_command=f'cd {dbt_project_dir} && /home/airflow/.local/bin/edr report --profiles-dir {dbt_profiles_dir} --days-back 3',
-    env=env_vars,
+    bash_command=f'cd {dbt_project_dir} && /home/airflow/.local/bin/edr report --profiles-dir {dbt_profiles_dir} --days-back 1 --exclude-elementary-models',
+    env=elementary_env,
     dag=dag,
 )
 
