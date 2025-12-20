@@ -95,10 +95,11 @@ dbt_test_all = BashOperator(
 )
 
 # Task 8: Generate Elementary report (OPTIONAL - won't fail DAG if OOM)
-# Aggressive memory optimization for 4GB RAM server:
+# Memory optimization for 4GB RAM server:
 # - PYTHONMALLOC='malloc': reduce Python memory overhead
-# - days-back 1: process only last day of data
-# - exclude-elementary-models: exclude Elementary's internal models from report
+# - days-back 1: process only last day of data (minimal dataset)
+# - disable-passed-test-metrics=true: skip metrics for passed tests (reduce data)
+# - exclude-elementary-models=true: exclude Elementary internal models (reduce report size)
 # - || true: don't fail DAG if Elementary crashes (OOM, etc.)
 # - retries=0: don't retry on failure to save resources
 elementary_env = env_vars.copy()
@@ -106,7 +107,7 @@ elementary_env['PYTHONMALLOC'] = 'malloc'
 
 elementary_report = BashOperator(
     task_id='elementary_generate_report',
-    bash_command=f'cd {dbt_project_dir} && /home/airflow/.local/bin/edr report --profiles-dir {dbt_profiles_dir} --days-back 1 --exclude-elementary-models || true',
+    bash_command=f'cd {dbt_project_dir} && /home/airflow/.local/bin/edr report --profiles-dir {dbt_profiles_dir} --days-back 1 --disable-passed-test-metrics=true --exclude-elementary-models=true || true',
     env=elementary_env,
     dag=dag,
     retries=0,
